@@ -48,3 +48,53 @@ def visualize_mask(mask):
     mask_rgb = np.zeros((*mask.shape, 3), dtype=np.uint8)
     mask_rgb[mask > 0] = [255, 255, 255]
     return mask_rgb
+
+
+def prepare_image_for_video(image, target_size=(224, 224)):
+    """
+    Prepare image tensor for video processing
+    Ensures output shape is (3, 224, 224) for video models
+    
+    Args:
+        image: Input image (H, W, C) in RGB format
+        target_size: Target spatial dimensions (default 224x224)
+    
+    Returns:
+        tensor: Image tensor with shape (3, H, W)
+    """
+    # Resize to target size if needed
+    if image.shape[:2] != target_size:
+        image = cv2.resize(image, target_size, interpolation=cv2.INTER_LINEAR)
+    
+    # Ensure RGB format (H, W, 3)
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    elif image.shape[2] == 4:
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+    
+    # Convert to float and normalize to [0, 1]
+    image = image.astype(np.float32) / 255.0
+    
+    # Transpose to (3, H, W) for video models
+    image_tensor = np.transpose(image, (2, 0, 1))
+    
+    return image_tensor
+
+
+def create_video_frame_batch(images, target_size=(224, 224)):
+    """
+    Prepare a batch of images for video processing
+    
+    Args:
+        images: List of images in (H, W, C) format
+        target_size: Target spatial dimensions
+    
+    Returns:
+        batch: Numpy array with shape (N, 3, H, W)
+    """
+    batch = []
+    for img in images:
+        tensor = prepare_image_for_video(img, target_size)
+        batch.append(tensor)
+    
+    return np.stack(batch, axis=0)

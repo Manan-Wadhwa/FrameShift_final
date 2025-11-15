@@ -51,9 +51,12 @@ def extract_clip_patch_features(image, window_size=64, stride=32):
             # Extract patch
             patch = image[y:y+window_size, x:x+window_size]
             
-            # Convert to PIL and preprocess
+            # Convert to PIL and preprocess (CLIP preprocess handles resizing to 224x224)
             patch_pil = Image.fromarray(patch)
             patch_tensor = preprocess(patch_pil).unsqueeze(0).to(device)
+            
+            # Verify tensor shape is (1, 3, 224, 224)
+            assert patch_tensor.shape == (1, 3, 224, 224), f"Expected (1, 3, 224, 224), got {patch_tensor.shape}"
             
             try:
                 # Extract features

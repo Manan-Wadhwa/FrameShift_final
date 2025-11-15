@@ -39,9 +39,18 @@ def extract_patch_features(image):
     
     device = next(model.parameters()).device
     
-    # Prepare image
-    img_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
-    img_tensor = img_tensor.unsqueeze(0).to(device)
+    # Prepare image - resize to 224x224
+    import cv2
+    img_resized = cv2.resize(image, (224, 224), interpolation=cv2.INTER_LINEAR)
+    
+    # Convert to tensor: (H, W, C) -> (C, H, W)
+    img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float() / 255.0
+    
+    # Ensure shape is exactly (3, 224, 224)
+    if img_tensor.shape != (3, 224, 224):
+        raise ValueError(f"Expected shape (3, 224, 224), got {img_tensor.shape}")
+    
+    img_tensor = img_tensor.unsqueeze(0).to(device)  # (1, 3, 224, 224)
     
     # Normalize (ImageNet stats)
     mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
