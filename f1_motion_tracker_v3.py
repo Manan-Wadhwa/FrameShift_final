@@ -112,7 +112,7 @@ CONFIG = {
     'roi_padding': 0.1,
     
     # Visualization
-    'output_mode': 'heatmap',           # 'mask', 'overlay', 'side_by_side', 'heatmap', 'comparison'
+    'output_mode': 'heatmap',           # 'mask', 'overlay', 'side_by_side', 'heatmap', 'comparison', 'all'
     'mask_color': (0, 255, 0),
     'overlay_alpha': 0.6,
     'show_contours': True,
@@ -959,22 +959,25 @@ class DriverMotionVisualizer:
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             y_offset += 30
     
-    def visualize(self, frame_gray, mask, contours, frame_num, total_frames, method):
+    def visualize(self, frame_gray, mask, contours, frame_num, total_frames, method, output_mode=None):
         """Create final visualization"""
         # Calculate motion percentage
         motion_pixels = np.sum(mask > 0)
         total_pixels = mask.shape[0] * mask.shape[1]
         motion_percentage = (motion_pixels / total_pixels) * 100
         
+        # Use specified mode or default from CONFIG
+        mode = output_mode if output_mode else CONFIG['output_mode']
+        
         # Create visualization
-        if CONFIG['output_mode'] == 'mask':
+        if mode == 'mask':
             result = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        elif CONFIG['output_mode'] == 'overlay':
+        elif mode == 'overlay':
             result = self.create_overlay_gray(frame_gray, mask)
             self.draw_contours(result, contours)
-        elif CONFIG['output_mode'] == 'heatmap':
+        elif mode == 'heatmap':
             result = self.create_heatmap_gray(frame_gray, mask)
-        elif CONFIG['output_mode'] == 'side_by_side':
+        elif mode == 'side_by_side':
             result = self.create_side_by_side_gray(frame_gray, mask)
         else:
             result = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
@@ -1046,22 +1049,46 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
         detector = MOG2Detector()
         method_name = "MOG2"
     
-    # Setup output video
-    output_width = frame_width
-    output_height = frame_height
+    # Setup output video(s)
+    fourcc = cv2.VideoWriter_fourcc(*CONFIG['output_codec'])
     
-    if CONFIG['output_mode'] == 'side_by_side':
-        output_width = frame_width * 2
-    elif CONFIG['output_mode'] == 'comparison':
+    # Check if multi-output mode
+    multi_output = CONFIG['output_mode'] == 'all'
+    
+    if multi_output:
+        # Create 4 separate output files
+        base_path = output_video_path.rsplit('.', 1)[0]
+        ext = output_video_path.rsplit('.', 1)[1] if '.' in output_video_path else 'mp4'
+        
+        outputs = {
+            'mask': cv2.VideoWriter(f"{base_path}_mask.{ext}", fourcc, fps, (frame_width, frame_height)),
+            'overlay': cv2.VideoWriter(f"{base_path}_overlay.{ext}", fourcc, fps, (frame_width, frame_height)),
+            'heatmap': cv2.VideoWriter(f"{base_path}_heatmap.{ext}", fourcc, fps, (frame_width, frame_height)),
+            'side_by_side': cv2.VideoWriter(f"{base_path}_sidebyside.{ext}", fourcc, fps, (frame_width * 2, frame_height))
+        }
+        
+        print(f"\n✅ Multi-Output Mode - Generating 4 videos:")
+        print(f"   1. {base_path}_mask.{ext}")
+        print(f"   2. {base_path}_overlay.{ext}")
+        print(f"   3. {base_path}_heatmap.{ext}")
+        print(f"   4. {base_path}_sidebyside.{ext}")
+        print(f"   Method: {method_name}")
+    else:
+        # Single output mode
         output_width = frame_width
         output_height = frame_height
-    
-    fourcc = cv2.VideoWriter_fourcc(*CONFIG['output_codec'])
-    out = cv2.VideoWriter(output_video_path, fourcc, fps, (output_width, output_height))
-    
-    print(f"\n✅ Output: {output_video_path}")
-    print(f"   Mode: {CONFIG['output_mode']}")
-    print(f"   Method: {method_name}")
+        
+        if CONFIG['output_mode'] == 'side_by_side':
+            output_width = frame_width * 2
+        elif CONFIG['output_mode'] == 'comparison':
+            output_width = frame_width
+            output_height = frame_height
+        
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (output_width, output_height))
+        
+        print(f"\n✅ Output: {output_video_path}")
+        print(f"   Mode: {CONFIG['output_mode']}")
+        print(f"   Method: {method_name}")
     
     # Initialize visualization
     visualizer = DriverMotionVisualizer()
@@ -1103,13 +1130,24 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
                 refined_mask, contours = refine_mask(combined_mask)
                 
                 # Visualize with all masks
-                if CONFIG['output_mode'] == 'comparison':
+                if CONFIG['output_mode'] == 'comparison' and not multi_output:
                     output_frame = visualizer.create_comparison(frame_gray, masks_dict)
+                    out.write(output_frame)
+                elif multi_output:
+                    # Generate all 4 visualization types
+                    for mode, writer in outputs.items():
+                        vis_frame = visualizer.visualize(
+                            frame_gray, refined_mask, contours,
+                            processed_count + 1, frames_to_process, method_name,
+                            output_mode=mode
+                        )
+                        writer.write(vis_frame)
                 else:
                     output_frame = visualizer.visualize(
                         frame_gray, refined_mask, contours,
                         processed_count + 1, frames_to_process, method_name
                     )
+                    out.write(output_frame)
             else:
                 fg_mask = detector.detect(processed_gray)
                 
@@ -1121,13 +1159,21 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
                     refined_mask = apply_temporal_smoothing(refined_mask, mask_history)
                 
                 # Visualize
-                output_frame = visualizer.visualize(
-                    frame_gray, refined_mask, contours,
-                    processed_count + 1, frames_to_process, method_name
-                )
-            
-            # Write frame
-            out.write(output_frame)
+                if multi_output:
+                    # Generate all 4 visualization types
+                    for mode, writer in outputs.items():
+                        vis_frame = visualizer.visualize(
+                            frame_gray, refined_mask, contours,
+                            processed_count + 1, frames_to_process, method_name,
+                            output_mode=mode
+                        )
+                        writer.write(vis_frame)
+                else:
+                    output_frame = visualizer.visualize(
+                        frame_gray, refined_mask, contours,
+                        processed_count + 1, frames_to_process, method_name
+                    )
+                    out.write(output_frame)
             
             # Show preview
             if CONFIG['show_preview']:
@@ -1169,7 +1215,14 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     finally:
         pbar.close()
         cap.release()
-        out.release()
+        
+        # Release video writer(s)
+        if multi_output:
+            for writer in outputs.values():
+                writer.release()
+        else:
+            out.release()
+        
         try:
             cv2.destroyAllWindows()
         except cv2.error:
@@ -1235,8 +1288,9 @@ if __name__ == "__main__":
     print("   4. Mask Only (binary)")
     if detection_method == 'hybrid':
         print("   5. Comparison (4-panel all methods)")
+    print("   6. ALL (generates mask, overlay, heatmap, side-by-side in one pass)")
     
-    viz_choice = input("\nSelect mode (1-5) or press Enter for default [1]: ").strip()
+    viz_choice = input("\nSelect mode (1-6) or press Enter for default [1]: ").strip()
     
     if viz_choice == "2":
         CONFIG['output_mode'] = 'heatmap'
@@ -1246,6 +1300,8 @@ if __name__ == "__main__":
         CONFIG['output_mode'] = 'mask'
     elif viz_choice == "5" and detection_method == 'hybrid':
         CONFIG['output_mode'] = 'comparison'
+    elif viz_choice == "6":
+        CONFIG['output_mode'] = 'all'
     else:
         CONFIG['output_mode'] = 'overlay'
     
@@ -1319,7 +1375,16 @@ if __name__ == "__main__":
         print(f"⚠️ Continuing with original video: {INPUT_VIDEO}")
     
     print(f"\n📹 Input: {INPUT_VIDEO}")
-    print(f"💾 Output: {OUTPUT_VIDEO}")
+    if CONFIG['output_mode'] == 'all':
+        base_path = OUTPUT_VIDEO.rsplit('.', 1)[0]
+        ext = OUTPUT_VIDEO.rsplit('.', 1)[1] if '.' in OUTPUT_VIDEO else 'mp4'
+        print(f"💾 Outputs (4 files):")
+        print(f"   1. {base_path}_mask.{ext}")
+        print(f"   2. {base_path}_overlay.{ext}")
+        print(f"   3. {base_path}_heatmap.{ext}")
+        print(f"   4. {base_path}_sidebyside.{ext}")
+    else:
+        print(f"💾 Output: {OUTPUT_VIDEO}")
     print(f"🎯 Method: {detection_method.upper()}")
     print(f"🎨 Mode: {CONFIG['output_mode'].upper()}")
     
@@ -1336,7 +1401,16 @@ if __name__ == "__main__":
         
         if success:
             print("\n🎉 SUCCESS! Your motion tracking video is ready!")
-            print(f"   Location: {OUTPUT_VIDEO}")
+            if CONFIG['output_mode'] == 'all':
+                base_path = OUTPUT_VIDEO.rsplit('.', 1)[0]
+                ext = OUTPUT_VIDEO.rsplit('.', 1)[1] if '.' in OUTPUT_VIDEO else 'mp4'
+                print(f"   📁 Generated 4 videos:")
+                print(f"      1. {base_path}_mask.{ext}")
+                print(f"      2. {base_path}_overlay.{ext}")
+                print(f"      3. {base_path}_heatmap.{ext}")
+                print(f"      4. {base_path}_sidebyside.{ext}")
+            else:
+                print(f"   Location: {OUTPUT_VIDEO}")
         else:
             print("\n❌ Processing failed. Check error messages above.")
     
