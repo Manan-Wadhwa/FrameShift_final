@@ -32,6 +32,7 @@ def get_patchcore_model():
 def extract_patch_features(image):
     """
     Extract patch-level features from intermediate layers
+    Ensures proper dimension handling for video frames
     """
     model = get_patchcore_model()
     if model is None:
@@ -39,14 +40,30 @@ def extract_patch_features(image):
     
     device = next(model.parameters()).device
     
-    # Prepare image - resize to 224x224
+    # Prepare image - resize to 224x224 (video compatibility)
     import cv2
+    
+    # Handle grayscale or single-channel images (for video)
+    if len(image.shape) == 2:  # (H, W) grayscale
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    elif image.shape[2] == 1:  # (H, W, 1)
+        image = np.repeat(image, 3, axis=-1)
+    elif image.shape[2] == 4:  # (H, W, 4) RGBA
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+    
+    # Ensure exactly 3 channels for video model
+    if image.shape[2] != 3:
+        raise ValueError(f"Expected 3 channels after conversion, got {image.shape[2]}")
+    
     img_resized = cv2.resize(image, (224, 224), interpolation=cv2.INTER_LINEAR)
     
-    # Convert to tensor: (H, W, C) -> (C, H, W)
-    img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float() / 255.0
+    # Convert to float32 and normalize to [0, 1]
+    img_resized = img_resized.astype(np.float32) / 255.0
     
-    # Ensure shape is exactly (3, 224, 224)
+    # Convert to tensor: (H, W, C) -> (C, H, W)
+    img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1)
+    
+    # Ensure shape is exactly (3, 224, 224) for video
     if img_tensor.shape != (3, 224, 224):
         raise ValueError(f"Expected shape (3, 224, 224), got {img_tensor.shape}")
     

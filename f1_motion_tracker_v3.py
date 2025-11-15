@@ -54,8 +54,8 @@ except Exception as e:
 
 CONFIG = {
     # Video input
-    'use_grayscale': True,              # Convert to grayscale
-    'detection_approach': 'hybrid',     # 'mog2', 'patchcore', 'patchcore_sam', 'hybrid'
+    'use_grayscale': False,              # Convert to grayscale
+    'detection_approach': 'patchcore',     # 'mog2', 'patchcore', 'patchcore_sam', 'hybrid'
     
     # MOG2 Settings (for grayscale)
     'mog2_history': 500,
@@ -93,7 +93,7 @@ CONFIG = {
     'roi_padding': 0.1,
     
     # Visualization
-    'output_mode': 'overlay',           # 'mask', 'overlay', 'side_by_side', 'heatmap', 'comparison'
+    'output_mode': 'heatmap',           # 'mask', 'overlay', 'side_by_side', 'heatmap', 'comparison'
     'mask_color': (0, 255, 0),
     'overlay_alpha': 0.6,
     'show_contours': True,
