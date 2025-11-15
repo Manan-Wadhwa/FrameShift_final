@@ -102,11 +102,17 @@ def compute_difference_maps(img_a, img_b):
     return diff_gray, diff_ssim, diff_color, img_b_resized
 
 
-def analyze_with_patchcore_sam(img_a, img_b, diff_map):
+def analyze_with_patchcore_sam(img_a, img_b, diff_map, use_preprocessing=True):
     """Apply PatchCore + SAM to the difference map"""
     try:
         # Preprocess reference and test images
-        ref_proc, test_proc = preprocess(img_a, img_b)
+        if use_preprocessing:
+            ref_proc, test_proc = preprocess(img_a, img_b)
+        else:
+            # Skip preprocessing - just resize to standard size
+            h, w = 336, 336
+            ref_proc = cv2.resize(img_a, (w, h))
+            test_proc = cv2.resize(img_b, (w, h))
         
         # Generate rough mask from difference
         rough_mask, _ = generate_rough_mask(ref_proc, test_proc)
@@ -114,24 +120,42 @@ def analyze_with_patchcore_sam(img_a, img_b, diff_map):
         # Refine with SAM
         refined_mask = sam_refine(test_proc, rough_mask)
         
-        # Run PatchCore + SAM pipeline on difference
-        # Create difference image (3-channel)
-        if len(diff_map.shape) == 2:
-            diff_3ch = cv2.cvtColor(diff_map, cv2.COLOR_GRAY2RGB)
-        else:
-            diff_3ch = diff_map
+        # Run PatchCore + SAM on BOTH images separately to compare heatmaps
+        result_a = run_patchcore_sam_pipeline(ref_proc, refined_mask, ref_img=ref_proc)
+        result_b = run_patchcore_sam_pipeline(test_proc, refined_mask, ref_img=test_proc)
         
-        result = run_patchcore_sam_pipeline(
-            test_proc, 
-            refined_mask, 
-            ref_img=ref_proc
-        )
+        if result_a and result_b:
+            hm_a = result_a.get("heatmap")
+            hm_b = result_b.get("heatmap")
+            
+            if hm_a is not None and hm_b is not None:
+                # Resize heatmap_b to match heatmap_a size
+                h, w = hm_a.shape[:2]
+                hm_b = cv2.resize(hm_b, (w, h))
+                
+                # Compute heatmap difference
+                hm_diff = cv2.absdiff(hm_a, hm_b)
+                hm_diff_gray = cv2.cvtColor(hm_diff, cv2.COLOR_RGB2GRAY)
+                
+                return {
+                    "result_a": result_a,
+                    "result_b": result_b,
+                    "heatmap_a": hm_a,
+                    "heatmap_b": hm_b,
+                    "heatmap_diff": hm_diff,
+                    "heatmap_diff_gray": hm_diff_gray,
+                    "refined_mask": refined_mask,
+                    "ref_proc": ref_proc,
+                    "test_proc": test_proc
+                }
         
-        return result, refined_mask, ref_proc, test_proc
+        return None
         
     except Exception as e:
         st.error(f"PatchCore + SAM analysis failed: {e}")
-        return None, None, None, None
+        import traceback
+        traceback.print_exc()
+        return None
 
 
 def main():
@@ -153,9 +177,24 @@ def main():
     with st.sidebar:
         st.header("📁 Input Images")
         
-        # File uploaders
-        uploaded_ref = st.file_uploader("Reference Image (A)", type=["jpg", "jpeg", "png"], key="diff_ref")
-        uploaded_test = st.file_uploader("Test Image (B)", type=["jpg", "jpeg", "png"], key="diff_test")
+        # Tab between upload and samples
+        tab1, tab2 = st.tabs(["Upload", "Samples"])
+        
+        uploaded_ref = None
+        uploaded_test = None
+        
+        with tab1:
+            uploaded_ref = st.file_uploader("Reference Image (A)", type=["jpg", "jpeg", "png"], key="diff_ref")
+            uploaded_test = st.file_uploader("Test Image (B)", type=["jpg", "jpeg", "png"], key="diff_test")
+        
+        with tab2:
+            sample_pairs = {
+                "Livery Change (back1/back2)": ("samples/back1.jpeg", "samples/back2.jpeg"),
+                "Object Change (copy1/copy2)": ("samples/copy1.jpeg", "samples/copy2.jpeg"),
+                "Tire Damage (crack1/crack2)": ("samples/crack1.jpg", "samples/crack2.png"),
+                "Subtle Change (side1/side2)": ("samples/side1.jpeg", "samples/side2.jpeg")
+            }
+            selected_sample = st.selectbox("Choose sample pair:", list(sample_pairs.keys()))
         
         st.markdown("---")
         
@@ -163,6 +202,7 @@ def main():
         st.header("⚙️ Options")
         align_images = st.checkbox("Align images before comparison", value=True)
         show_diff_maps = st.checkbox("Show difference maps", value=True)
+        use_preprocessing = st.checkbox("Use preprocessing", value=True, help="Resize, denoise, gamma correction")
         
         st.markdown("---")
         
@@ -171,16 +211,20 @@ def main():
     
     # Main content
     if run_button:
-        if uploaded_ref is None or uploaded_test is None:
-            st.error("❌ Please upload both images")
-            return
-        
-        # Load images
-        ref_img = Image.open(uploaded_ref)
-        test_img = Image.open(uploaded_test)
-        
-        ref_array = np.array(ref_img.convert('RGB'))
-        test_array = np.array(test_img.convert('RGB'))
+        # Determine which images to use
+        if uploaded_ref is not None and uploaded_test is not None:
+            ref_img = Image.open(uploaded_ref)
+            test_img = Image.open(uploaded_test)
+            ref_array = np.array(ref_img.convert('RGB'))
+            test_array = np.array(test_img.convert('RGB'))
+        else:
+            # Use selected sample
+            ref_path, test_path = sample_pairs[selected_sample]
+            if not os.path.exists(ref_path) or not os.path.exists(test_path):
+                st.error(f"❌ Sample images not found: {ref_path}, {test_path}")
+                return
+            ref_array = np.array(Image.open(ref_path).convert('RGB'))
+            test_array = np.array(Image.open(test_path).convert('RGB'))
         
         st.success(f"✓ Loaded images: Ref {ref_array.shape}, Test {test_array.shape}")
         
@@ -225,67 +269,104 @@ def main():
             st.markdown("---")
         
         # Step 3: PatchCore + SAM Analysis
-        st.header("Step 3️⃣: PatchCore + SAM Analysis")
+        st.header("Step 3️⃣: PatchCore + SAM Heatmap Comparison")
         
-        with st.spinner("Running PatchCore + SAM on difference maps..."):
-            result, refined_mask, ref_proc, test_proc = analyze_with_patchcore_sam(
-                ref_aligned, test_resized, diff_gray
+        with st.spinner("Running PatchCore + SAM on both images..."):
+            analysis_result = analyze_with_patchcore_sam(
+                ref_aligned, test_resized, diff_gray, use_preprocessing=use_preprocessing
             )
         
-        if result is None:
+        if analysis_result is None:
             st.error("Analysis failed")
             gc.collect()
             return
         
         st.success("✓ Analysis complete")
         
-        # Display results
+        # Display heatmap comparison
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.subheader("Heatmap")
-            if result.get("heatmap") is not None:
-                st.image(result["heatmap"], use_column_width=True)
+            st.subheader("Heatmap A (Reference)")
+            if analysis_result.get("heatmap_a") is not None:
+                st.image(analysis_result["heatmap_a"], use_container_width=True)
         
         with col2:
-            st.subheader("Detected Changes")
-            if result.get("mask_final") is not None:
-                mask_rgb = cv2.cvtColor(result["mask_final"], cv2.COLOR_GRAY2RGB)
-                st.image(mask_rgb, use_column_width=True)
+            st.subheader("Heatmap B (Test)")
+            if analysis_result.get("heatmap_b") is not None:
+                st.image(analysis_result["heatmap_b"], use_container_width=True)
         
         with col3:
-            st.subheader("Overlay")
-            if result.get("overlay") is not None:
-                st.image(result["overlay"], use_container_width=True)
+            st.subheader("Heatmap Difference")
+            if analysis_result.get("heatmap_diff") is not None:
+                st.image(analysis_result["heatmap_diff"], use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Display detection masks
+        st.header("Detected Changes")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Image A Mask")
+            result_a = analysis_result.get("result_a")
+            if result_a and result_a.get("mask_final") is not None:
+                mask_a_rgb = cv2.cvtColor(result_a["mask_final"], cv2.COLOR_GRAY2RGB)
+                st.image(mask_a_rgb, use_container_width=True)
+        
+        with col2:
+            st.subheader("Image B Mask")
+            result_b = analysis_result.get("result_b")
+            if result_b and result_b.get("mask_final") is not None:
+                mask_b_rgb = cv2.cvtColor(result_b["mask_final"], cv2.COLOR_GRAY2RGB)
+                st.image(mask_b_rgb, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Display overlays
+        st.header("Overlays")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Image A Overlay")
+            if result_a and result_a.get("overlay") is not None:
+                st.image(result_a["overlay"], use_container_width=True)
+        
+        with col2:
+            st.subheader("Image B Overlay")
+            if result_b and result_b.get("overlay") is not None:
+                st.image(result_b["overlay"], use_container_width=True)
         
         st.markdown("---")
         
         # Metrics
-        col1, col2, col3 = st.columns(3)
+        st.header("📊 Metrics")
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            severity = result.get("severity", 0.0)
-            st.metric("Severity Score", f"{severity:.3f}")
+            result_a = analysis_result.get("result_a", {})
+            severity_a = result_a.get("severity", 0.0)
+            st.metric("Severity (Image A)", f"{severity_a:.3f}")
         
         with col2:
+            result_b = analysis_result.get("result_b", {})
+            severity_b = result_b.get("severity", 0.0)
+            st.metric("Severity (Image B)", f"{severity_b:.3f}")
+        
+        with col3:
+            refined_mask = analysis_result.get("refined_mask")
             if refined_mask is not None:
                 change_pct = (np.sum(refined_mask > 0) / (refined_mask.shape[0] * refined_mask.shape[1])) * 100
                 st.metric("Change Area", f"{change_pct:.1f}%")
         
-        with col3:
+        with col4:
             diff_mean = np.mean(diff_gray)
             st.metric("Avg Difference", f"{diff_mean:.1f}")
         
         st.markdown("---")
         
-        # Report
-        st.subheader("📄 Analysis Report")
-        report = result.get("report", "Report not available")
-        with st.expander("View Full Report"):
-            st.info(report)
-        
         # Cache output
-        st.session_state.diff_output = result
+        st.session_state.diff_output = analysis_result
         
         # Cleanup
         gc.collect()
