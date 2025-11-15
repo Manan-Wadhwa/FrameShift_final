@@ -95,9 +95,13 @@ def select_video_gui():
     root.withdraw()
     root.attributes('-topmost', True)
     
+    # Start in video folder if it exists
+    initial_dir = "video" if os.path.isdir("video") else os.getcwd()
+    
     print("📂 Select F1 onboard video...")
     video_path = filedialog.askopenfilename(
         title="Select F1 Onboard Video",
+        initialdir=initial_dir,
         filetypes=[
             ("Video files", "*.mp4 *.avi *.mov *.mkv"),
             ("All files", "*.*")
@@ -759,15 +763,20 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
             
             # Show preview
             if CONFIG['show_preview']:
-                preview = cv2.resize(output_frame, None,
-                                   fx=CONFIG['preview_scale'],
-                                   fy=CONFIG['preview_scale'])
-                cv2.imshow('F1 Driver Motion Tracker V3', preview)
-                
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
-                    print("\n⏹️ Stopped by user")
-                    break
+                try:
+                    preview = cv2.resize(output_frame, None,
+                                       fx=CONFIG['preview_scale'],
+                                       fy=CONFIG['preview_scale'])
+                    cv2.imshow('F1 Driver Motion Tracker V3', preview)
+                    
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord('q'):
+                        print("\n⏹️ Stopped by user")
+                        break
+                except cv2.error as e:
+                    # GUI not available, just skip preview
+                    print(f"\n⚠️ Preview not available (headless environment)")
+                    CONFIG['show_preview'] = False
             
             # Progress
             processed_count += 1
@@ -787,7 +796,11 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     finally:
         cap.release()
         out.release()
-        cv2.destroyAllWindows()
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error:
+            # GUI not available, skip cleanup
+            pass
     
     print("\n" + "="*70)
     print(f"✅ Processing complete!")
@@ -862,7 +875,43 @@ if __name__ == "__main__":
             print("❌ No video selected. Exiting.")
             sys.exit(1)
     else:
-        INPUT_VIDEO = input("Enter video path: ").strip().strip('"')
+        video_input = input("Enter video name or path (press Enter to list video folder): ").strip().strip('"')
+        
+        # If empty, list videos in video folder
+        if not video_input:
+            if os.path.isdir("video"):
+                print("\n📂 Videos in ./video/:")
+                videos = [f for f in os.listdir("video") if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv'))]
+                for i, v in enumerate(videos, 1):
+                    print(f"   {i}. {v}")
+                if videos:
+                    choice = input("\nSelect video number: ").strip()
+                    try:
+                        idx = int(choice) - 1
+                        if 0 <= idx < len(videos):
+                            INPUT_VIDEO = os.path.join("video", videos[idx])
+                        else:
+                            print("❌ Invalid selection.")
+                            sys.exit(1)
+                    except ValueError:
+                        print("❌ Invalid input.")
+                        sys.exit(1)
+                else:
+                    print("❌ No videos found in ./video/")
+                    sys.exit(1)
+            else:
+                print("❌ video/ folder not found.")
+                sys.exit(1)
+        else:
+            # Check if it's in video folder
+            if not os.path.exists(video_input):
+                video_path_in_folder = os.path.join("video", video_input)
+                if os.path.exists(video_path_in_folder):
+                    INPUT_VIDEO = video_path_in_folder
+                else:
+                    INPUT_VIDEO = video_input
+            else:
+                INPUT_VIDEO = video_input
     
     # Generate output filename
     base_name = os.path.splitext(os.path.basename(INPUT_VIDEO))[0]
