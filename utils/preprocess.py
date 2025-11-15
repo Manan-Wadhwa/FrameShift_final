@@ -1,14 +1,93 @@
 """
 Preprocessing utilities for F1 Visual Difference Engine
-Handles resize, denoise, lighting correction, and SIFT alignment
+Handles resize, denoise, lighting correction, SIFT alignment, and background removal
 """
 import cv2
 import numpy as np
+from PIL import Image
 
 
 def resize_image(image, size=(512, 512)):
-    """Resize image to standard shape"""
-    return cv2.resize(image, size, interpolation=cv2.INTER_LINEAR)
+    """Resize image to standard shape using center crop"""
+    return resize_with_center_crop(image, target_size=size)
+
+
+def resize_with_center_crop(image, target_size=(512, 512)):
+    """
+    Resize image using center crop (aspect ratio preserving)
+    
+    Steps:
+    1. Scale image to fit target size while preserving aspect ratio
+    2. Center crop to exact target size
+    """
+    h, w = image.shape[:2]
+    target_h, target_w = target_size
+    
+    # Calculate scaling factor to fit the image in the target while preserving aspect ratio
+    scale = max(target_h / h, target_w / w)
+    
+    # Scale image
+    scaled_h = int(h * scale)
+    scaled_w = int(w * scale)
+    scaled = cv2.resize(image, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
+    
+    # Center crop to target size
+    start_h = (scaled_h - target_h) // 2
+    start_w = (scaled_w - target_w) // 2
+    
+    cropped = scaled[start_h:start_h + target_h, start_w:start_w + target_w]
+    
+    return cropped
+
+
+def remove_background_rembg(image):
+    """
+    Remove background using rembg
+    Input: BGR image
+    Output: RGBA image with transparent background
+    """
+    try:
+        import rembg
+        
+        # Convert BGR to RGB for rembg
+        img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img_pil = Image.fromarray(img_rgb)
+        
+        # Remove background
+        output = rembg.remove(img_pil)
+        
+        # Convert back to numpy array (RGBA)
+        output_np = np.array(output)
+        
+        return output_np
+    except ImportError:
+        print("Warning: rembg not installed, skipping background removal")
+        return None
+    except Exception as e:
+        print(f"Warning: Background removal failed: {e}")
+        return None
+
+
+def apply_transparent_bg(image_rgba):
+    """
+    Apply transparent background as white for further processing
+    Input: RGBA image
+    Output: RGB image with white background where transparent
+    """
+    if image_rgba is None or image_rgba.shape[2] != 4:
+        return image_rgba
+    
+    # Extract RGB and alpha channel
+    rgb = image_rgba[:, :, :3]
+    alpha = image_rgba[:, :, 3:4] / 255.0
+    
+    # Create white background
+    white_bg = np.ones_like(rgb) * 255
+    
+    # Blend using alpha
+    result = (rgb * alpha + white_bg * (1 - alpha)).astype(np.uint8)
+    
+    return result
 
 
 def median_blur(image, k=3):
@@ -84,40 +163,60 @@ def sift_alignment(ref_img, test_img):
 def preprocess(image_a, image_b):
     """
     Complete preprocessing pipeline
-    Returns: preprocessed_ref, preprocessed_test (both RGB and aligned)
-    """
-    # Step 1: Resize
-    ref = resize_image(image_a)
-    test = resize_image(image_b)
+    Returns: preprocessed_ref, preprocessed_test (both RGB)
     
-    # Step 2: Denoise
+    Steps:
+    1. Resize using center crop to 336x336
+    2. Remove background using rembg
+    3. Denoise with median blur
+    4. Gamma correction
+    5. Convert to RGB
+    """
+    # Step 1: Resize using center crop
+    target_size = 336  # Divisible by 14 for transformer compatibility
+    ref = resize_with_center_crop(image_a, target_size=(target_size, target_size))
+    test = resize_with_center_crop(image_b, target_size=(target_size, target_size))
+    
+    # Step 2: Background removal using rembg
+    print("   [Preprocess] Removing backgrounds using rembg...")
+    ref_no_bg = remove_background_rembg(ref)
+    test_no_bg = remove_background_rembg(test)
+    
+    # If background removal succeeded, apply white background; otherwise continue with original
+    if ref_no_bg is not None:
+        ref = apply_transparent_bg(ref_no_bg)
+    if test_no_bg is not None:
+        test = apply_transparent_bg(test_no_bg)
+    
+    # Step 3: Denoise
     ref = median_blur(ref)
     test = median_blur(test)
     
-    # Step 3: Gamma correction
+    # Step 4: Gamma correction
     ref = gamma_correct(ref)
     test = gamma_correct(test)
     
-    # Step 4: Convert to RGB (if not already)
+    # Step 5: Convert to RGB (if not already)
     if len(ref.shape) == 2:
         ref = cv2.cvtColor(ref, cv2.COLOR_GRAY2RGB)
     elif ref.shape[2] == 4:
         ref = cv2.cvtColor(ref, cv2.COLOR_BGRA2RGB)
-    else:
-        ref = cv2.cvtColor(ref, cv2.COLOR_BGR2RGB)
+    elif ref.shape[2] == 3:
+        # Check if it's BGR
+        try:
+            ref = cv2.cvtColor(ref, cv2.COLOR_BGR2RGB)
+        except:
+            pass  # Already RGB
     
     if len(test.shape) == 2:
         test = cv2.cvtColor(test, cv2.COLOR_GRAY2RGB)
     elif test.shape[2] == 4:
         test = cv2.cvtColor(test, cv2.COLOR_BGRA2RGB)
-    else:
-        test = cv2.cvtColor(test, cv2.COLOR_BGR2RGB)
+    elif test.shape[2] == 3:
+        # Check if it's BGR
+        try:
+            test = cv2.cvtColor(test, cv2.COLOR_BGR2RGB)
+        except:
+            pass  # Already RGB
     
-    # Step 5: SIFT alignment
-    test_aligned = sift_alignment(
-        cv2.cvtColor(ref, cv2.COLOR_RGB2BGR),
-        cv2.cvtColor(test, cv2.COLOR_RGB2BGR)
-    )
-    test_aligned = cv2.cvtColor(test_aligned, cv2.COLOR_BGR2RGB)
-    
-    return ref, test_aligned
+    return ref, test

@@ -13,6 +13,9 @@ torchvision>=0.15.0
 transformers>=4.35.0
 timm>=0.9.0
 
+# Background removal
+rembg>=2.0.50
+
 # Optional: SAM (Segment Anything Model)
 # Install from: pip install git+https://github.com/facebookresearch/segment-anything.git
 # Download checkpoint: https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth

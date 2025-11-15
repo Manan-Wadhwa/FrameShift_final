@@ -137,6 +137,12 @@ def run_padim_pipeline(test_img, refined_mask, ref_img=None):
     """
     global _gaussian_params
     
+    # Ensure all inputs have the same size
+    h, w = test_img.shape[:2]
+    if refined_mask.shape[:2] != (h, w):
+        print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
+        refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+    
     # Fit Gaussian on reference
     if ref_img is not None and _gaussian_params is None:
         ref_features = extract_padim_features(ref_img)
@@ -162,7 +168,6 @@ def run_padim_pipeline(test_img, refined_mask, ref_img=None):
     anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
     
     # Resize to image size
-    h, w = test_img.shape[:2]
     anomaly_map_resized = cv2.resize(anomaly_map, (w, h), interpolation=cv2.INTER_LINEAR)
     diff_map = (anomaly_map_resized * 255).astype(np.uint8)
     
@@ -171,6 +176,10 @@ def run_padim_pipeline(test_img, refined_mask, ref_img=None):
     
     # Threshold
     _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Ensure mask_binary has the same size as refined_mask
+    if mask_binary.shape[:2] != refined_mask.shape[:2]:
+        mask_binary = cv2.resize(mask_binary, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
     
     # Combine with refined mask
     mask_final = cv2.bitwise_and(mask_binary, refined_mask)

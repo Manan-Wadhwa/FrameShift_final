@@ -55,12 +55,26 @@ def extract_clip_patch_features(image, window_size=64, stride=32):
             patch_pil = Image.fromarray(patch)
             patch_tensor = preprocess(patch_pil).unsqueeze(0).to(device)
             
-            # Extract features
-            with torch.no_grad():
-                features = model.encode_image(patch_tensor)
-                features = features / features.norm(dim=-1, keepdim=True)  # Normalize
+            try:
+                # Extract features
+                with torch.no_grad():
+                    # Clear cache before each patch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    
+                    features = model.encode_image(patch_tensor)
+                    features = features / features.norm(dim=-1, keepdim=True)  # Normalize
+                
+                feature_map[y_idx, x_idx] = features.cpu().numpy()
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    print(f"Warning: CLIP OOM at patch ({y_idx}, {x_idx}), skipping")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    feature_map[y_idx, x_idx] = np.zeros(512)
+                else:
+                    raise
             
-            feature_map[y_idx, x_idx] = features.cpu().numpy()
             x_idx += 1
         y_idx += 1
     
@@ -96,6 +110,12 @@ def run_clip_pipeline(ref_img, test_img, refined_mask):
         "diff_map": raw difference map
     }
     """
+    # Ensure all inputs have the same size
+    h, w = test_img.shape[:2]
+    if refined_mask.shape[:2] != (h, w):
+        print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
+        refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+    
     # Extract patch features
     ref_features = extract_clip_patch_features(ref_img)
     test_features = extract_clip_patch_features(test_img)
@@ -112,7 +132,6 @@ def run_clip_pipeline(ref_img, test_img, refined_mask):
         diff = compute_clip_difference(ref_features, test_features)
     
     # Resize to original image size
-    h, w = ref_img.shape[:2]
     diff_resized = cv2.resize(diff, (w, h), interpolation=cv2.INTER_LINEAR)
     diff_map = (diff_resized * 255).astype(np.uint8)
     
@@ -122,6 +141,9 @@ def run_clip_pipeline(ref_img, test_img, refined_mask):
     # Threshold
     _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
+    # Ensure mask_binary has the same size as refined_mask
+    if mask_binary.shape[:2] != refined_mask.shape[:2]:
+        mask_binary = cv2.resize(mask_binary, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
     # Combine with refined mask
     mask_final = cv2.bitwise_and(mask_binary, refined_mask)
     

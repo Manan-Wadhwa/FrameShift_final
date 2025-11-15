@@ -1,11 +1,12 @@
 """
-ANOMALY PIPELINE 3: PatchCore Detection
-Nearest-neighbor distance for anomaly detection
+HYBRID ANOMALY PIPELINE: PatchCore + SAM Fusion
+Combines PatchCore feature-based anomaly detection with SAM segmentation refinement
 """
 import torch
 import cv2
 import numpy as np
 from utils.visualization import create_heatmap, create_overlay
+from utils.sam_refine import sam_refine
 
 
 # Global PatchCore components
@@ -110,25 +111,61 @@ def compute_anomaly_map(test_features, memory_bank, k=3):
     return anomaly_map
 
 
-def run_patchcore_pipeline(test_img, refined_mask, ref_img=None):
+def refine_anomaly_with_sam(test_img, anomaly_map, threshold=0.5):
     """
-    Complete PatchCore pipeline
+    Refine anomaly detection using SAM
+    
+    Steps:
+    1. Threshold anomaly map to get rough anomaly regions
+    2. Use SAM to refine boundaries
+    3. Combine both for final mask
+    """
+    # Normalize and threshold anomaly map
+    anomaly_map_norm = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+    _, rough_anomaly_mask = cv2.threshold(
+        (anomaly_map_norm * 255).astype(np.uint8),
+        int(threshold * 255),
+        255,
+        cv2.THRESH_BINARY
+    )
+    
+    # Apply morphological operations to clean up
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    rough_anomaly_mask = cv2.morphologyEx(rough_anomaly_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    rough_anomaly_mask = cv2.morphologyEx(rough_anomaly_mask, cv2.MORPH_OPEN, kernel)
+    
+    # Use SAM to refine the mask
+    refined_mask = sam_refine(test_img, rough_anomaly_mask)
+    
+    return refined_mask, rough_anomaly_mask, anomaly_map_norm
+
+
+def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
+    """
+    Complete PatchCore + SAM hybrid pipeline
+    
+    Args:
+        test_img: Test image (RGB)
+        refined_mask: Mask from preprocessing (optional, for reference)
+        ref_img: Reference image (RGB, for building memory bank)
     
     Returns:
     {
         "heatmap": colored heatmap,
-        "mask_final": thresholded mask,
+        "mask_final": thresholded mask refined by SAM,
         "overlay": overlay on test image,
-        "summary": "anomaly",
+        "summary": "anomaly_hybrid",
         "severity": anomaly severity score,
-        "diff_map": raw anomaly map
+        "diff_map": raw anomaly map,
+        "rough_mask": rough anomaly mask before SAM,
+        "refined_mask_sam": mask refined by SAM
     }
     """
     global _memory_bank
     
     # Ensure all inputs have the same size
     h, w = test_img.shape[:2]
-    if refined_mask.shape[:2] != (h, w):
+    if refined_mask is not None and refined_mask.shape[:2] != (h, w):
         print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
         refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
     
@@ -146,33 +183,52 @@ def run_patchcore_pipeline(test_img, refined_mask, ref_img=None):
         gray = cv2.cvtColor(test_img, cv2.COLOR_RGB2GRAY)
         anomaly_map = cv2.Laplacian(gray, cv2.CV_64F)
         anomaly_map = np.abs(anomaly_map)
+        anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+        refined_mask_sam = None
+        rough_mask = None
     else:
-        # Compute anomaly map
+        # Compute anomaly map using PatchCore
         anomaly_map = compute_anomaly_map(test_features, _memory_bank)
+        
+        # Upsample anomaly map to match image size (feature map is smaller than image)
+        if anomaly_map.shape != (h, w):
+            anomaly_map = cv2.resize(anomaly_map, (w, h), interpolation=cv2.INTER_LINEAR)
+        
+        # Refine with SAM
+        refined_mask_sam, rough_mask, anomaly_map = refine_anomaly_with_sam(
+            test_img, 
+            anomaly_map, 
+            threshold=0.5
+        )
     
-    # Normalize
-    anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+    # Normalize anomaly map to [0, 1]
+    if anomaly_map.max() > 1.0:
+        anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
     
-    # Resize to image size
-    anomaly_map_resized = cv2.resize(anomaly_map, (w, h), interpolation=cv2.INTER_LINEAR)
-    diff_map = (anomaly_map_resized * 255).astype(np.uint8)
+    # Convert to 0-255 range
+    diff_map = (anomaly_map * 255).astype(np.uint8)
     
     # Create heatmap
     heatmap = create_heatmap(diff_map, colormap='hot')
     
-    # Threshold
+    # Threshold to create binary mask
     _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
-    # Ensure mask_binary has the same size as refined_mask
-    if mask_binary.shape[:2] != refined_mask.shape[:2]:
-        mask_binary = cv2.resize(mask_binary, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
+    # Use SAM-refined mask if available, otherwise use binary mask
+    if refined_mask_sam is not None:
+        mask_final = refined_mask_sam
+    else:
+        mask_final = mask_binary
     
-    # Combine with refined mask
-    mask_final = cv2.bitwise_and(mask_binary, refined_mask)
+    # Ensure mask_final matches refined_mask if provided
+    if refined_mask is not None and mask_final.shape[:2] != refined_mask.shape[:2]:
+        mask_final = cv2.resize(mask_final, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
+        # Combine with preprocessing refined mask
+        mask_final = cv2.bitwise_and(mask_final, refined_mask)
     
     # Compute severity
     mask_region = (mask_final > 0).astype(np.uint8)
-    severity = float(anomaly_map_resized[mask_region > 0].mean()) if mask_region.sum() > 0 else 0.0
+    severity = float(anomaly_map[mask_region > 0].mean()) if mask_region.sum() > 0 else 0.0
     
     # Create overlay
     overlay = create_overlay(test_img, mask_final, heatmap, alpha=0.4)
@@ -181,7 +237,9 @@ def run_patchcore_pipeline(test_img, refined_mask, ref_img=None):
         "heatmap": heatmap,
         "mask_final": mask_final,
         "overlay": overlay,
-        "summary": "anomaly",
+        "summary": "anomaly_hybrid",
         "severity": severity,
-        "diff_map": diff_map
+        "diff_map": diff_map,
+        "rough_mask": rough_mask if rough_mask is not None else mask_binary,
+        "refined_mask_sam": refined_mask_sam
     }

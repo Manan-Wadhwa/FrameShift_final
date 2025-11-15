@@ -38,8 +38,21 @@ def extract_dino_features(image):
     
     device = next(model.parameters()).device
     
-    # Prepare image (DINO expects 224x224 patches)
-    img_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
+    # Reduce image size to avoid OOM (DINO with 504x504 creates too many patches)
+    # Resize to 336x336 which gives manageable patch count
+    h_orig, w_orig = image.shape[:2]
+    target_size = 336
+    if h_orig > target_size or w_orig > target_size:
+        scale = target_size / max(h_orig, w_orig)
+        h_new = int(h_orig * scale)
+        w_new = int(w_orig * scale)
+        image_resized = cv2.resize(image, (w_new, h_new), interpolation=cv2.INTER_LINEAR)
+    else:
+        image_resized = image
+        h_new, w_new = h_orig, w_orig
+    
+    # Prepare image (DINO expects normalized input)
+    img_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
     img_tensor = img_tensor.unsqueeze(0).to(device)
     
     # Normalize (ImageNet stats)
@@ -47,21 +60,40 @@ def extract_dino_features(image):
     std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
     img_tensor = (img_tensor - mean) / std
     
-    with torch.no_grad():
-        features = model.forward_features(img_tensor)
-        patch_features = features['x_norm_patchtokens']  # (1, num_patches, dim)
-    
-    # Reshape to spatial grid
-    num_patches = int(np.sqrt(patch_features.shape[1]))
-    patch_features = patch_features.reshape(1, num_patches, num_patches, -1)
-    
-    # Upsample to original resolution
-    patch_features = patch_features.squeeze(0).cpu().numpy()
-    h, w = image.shape[:2]
-    
-    feature_map = cv2.resize(patch_features, (w, h), interpolation=cv2.INTER_LINEAR)
-    
-    return feature_map
+    try:
+        with torch.no_grad():
+            # Clear cache before processing
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
+            features = model.forward_features(img_tensor)
+            patch_features = features['x_norm_patchtokens']  # (1, num_patches, dim)
+        
+        # Reshape to spatial grid
+        num_patches = int(np.sqrt(patch_features.shape[1]))
+        patch_features = patch_features.reshape(1, num_patches, num_patches, -1)
+        
+        # Upsample to original resolution
+        patch_features = patch_features.squeeze(0).cpu().numpy()
+        
+        # Resize back to original size if we resized
+        if h_new != h_orig or w_new != w_orig:
+            feature_map = cv2.resize(patch_features, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
+        else:
+            feature_map = patch_features
+        
+        return feature_map
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower():
+            print(f"Warning: DINO OOM - trying with even smaller size")
+            # Clear cache and try with smaller size
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+            # Fallback - return None to use pixel difference
+            return None
+        else:
+            raise
 
 
 def compute_dino_difference(ref_features, test_features):
@@ -90,6 +122,12 @@ def run_dino_pipeline(ref_img, test_img, refined_mask):
         "diff_map": raw difference map
     }
     """
+    # Ensure all inputs have the same size
+    h, w = test_img.shape[:2]
+    if refined_mask.shape[:2] != (h, w):
+        print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
+        refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+    
     # Extract features
     ref_features = extract_dino_features(ref_img)
     test_features = extract_dino_features(test_img)
@@ -103,11 +141,19 @@ def run_dino_pipeline(ref_img, test_img, refined_mask):
         # Compute difference
         diff_map = compute_dino_difference(ref_features, test_features)
     
+    # Ensure diff_map has the same size as test_img
+    if diff_map.shape[:2] != (h, w):
+        diff_map = cv2.resize(diff_map, (w, h), interpolation=cv2.INTER_LINEAR)
+    
     # Create heatmap
     heatmap = create_heatmap(diff_map, colormap='jet')
     
     # Threshold to create mask
     _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Ensure mask_binary has the same size as refined_mask
+    if mask_binary.shape[:2] != refined_mask.shape[:2]:
+        mask_binary = cv2.resize(mask_binary, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
     
     # Combine with refined mask (intersection)
     mask_final = cv2.bitwise_and(mask_binary, refined_mask)
