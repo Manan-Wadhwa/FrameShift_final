@@ -89,12 +89,34 @@ def main():
         st.session_state.last_analysis = None
     if 'current_output' not in st.session_state:
         st.session_state.current_output = None
+    if 'page' not in st.session_state:
+        st.session_state.page = "Multi-Pipeline"
     
     st.title("🏎️ F1 Visual Difference Engine")
     st.markdown("**Multi-Pipeline Visual Change Detection System**")
+    
+    # Page selector
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔬 Multi-Pipeline", use_container_width=True):
+            st.session_state.page = "Multi-Pipeline"
+    with col2:
+        if st.button("🔄 Image Differencing", use_container_width=True):
+            st.session_state.page = "Differencing"
+    
     st.markdown("---")
     
-    # Sidebar
+    # Route to selected page
+    if st.session_state.page == "Differencing":
+        import importlib
+        differencing_module = importlib.import_module('streamlit_differencing')
+        differencing_module.main()
+    else:
+        # Original multi-pipeline page
+        render_multi_pipeline()
+
+
+def render_multi_pipeline():
     with st.sidebar:
         st.header("📁 Input Images")
         
