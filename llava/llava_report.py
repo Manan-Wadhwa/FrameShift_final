@@ -1,61 +1,8 @@
 """
-LLaVA Report Generator
-Generates natural language explanations of detected differences
+Report Generator - Rule-based only (no LLaVA model)
+Generates analysis reports using template logic
 """
 import numpy as np
-import cv2
-from PIL import Image
-import base64
-from io import BytesIO
-
-
-# Global LLaVA model (lazy loaded)
-_llava_model = None
-_llava_tokenizer = None
-
-
-def get_llava_model():
-    """Lazy load LLaVA model"""
-    global _llava_model, _llava_tokenizer
-    if _llava_model is None:
-        try:
-            from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
-            import torch
-
-            model_id = "llava-hf/llava-v1.6-mistral-7b-hf"
-            _llava_model = LlavaNextForConditionalGeneration.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-                low_cpu_mem_usage=True
-            )
-            _llava_tokenizer = LlavaNextProcessor.from_pretrained(model_id)
-
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            _llava_model.to(device)
-            _llava_model.eval()
-
-        except Exception as e:
-            print(f"Warning: LLaVA loading failed: {e}")
-            _llava_model = None
-            _llava_tokenizer = None
-
-    return _llava_model, _llava_tokenizer
-
-
-def create_composite_image(ref_img, test_img, heatmap, mask):
-    """
-    Create a composite image showing reference, test, heatmap, and mask
-    """
-    # Resize all to same size
-    h, w = ref_img.shape[:2]
-
-    # Create 2x2 grid
-    top_row = np.hstack([ref_img, test_img])
-    bottom_row = np.hstack([heatmap, cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)])
-
-    composite = np.vstack([top_row, bottom_row])
-
-    return composite
 
 
 def generate_rule_based_report(pipeline_type, severity=None, features=None, mask_area=None, pipeline_name=None):
@@ -253,72 +200,7 @@ consider installing LLaVA vision-language model components.
 
 def llava_generate(ref_img, test_img, heatmap, mask_final, pipeline_type="semantic", severity=None, features=None, pipeline_name=None):
     """
-    Generate natural language report using LLaVA
-
-    Args:
-        ref_img: Reference image (RGB)
-        test_img: Test image (RGB)
-        heatmap: Difference heatmap
-        mask_final: Final segmentation mask
-        pipeline_type: "semantic" or "anomaly"
-        severity: Anomaly severity score (for anomaly pipelines)
-        features: Routing features dict (optional)
-        pipeline_name: Name of the pipeline (optional)
-
-    Returns:
-        report: Natural language explanation
+    Generate rule-based report (no model needed)
     """
-    model, tokenizer = get_llava_model()
-
-    # Calculate mask area
     mask_area = np.sum(mask_final > 0) if mask_final is not None else 0
-
-    # Fallback to rule-based if LLaVA unavailable
-    if model is None:
-        return generate_rule_based_report(pipeline_type, severity, features, mask_area, pipeline_name)
-
-    try:
-        # Create composite image for LLaVA
-        composite = create_composite_image(ref_img, test_img, heatmap, mask_final)
-        composite_pil = Image.fromarray(composite)
-
-        # Prepare prompt based on pipeline type
-        if pipeline_type == "semantic":
-            prompt = (
-                "USER: <image>\n"
-                "This is a 2x2 comparison grid showing: (top-left) reference F1 car, (top-right) test F1 car, "
-                "(bottom-left) difference heatmap, (bottom-right) detected change mask.\n\n"
-                "Analyze the semantic visual differences between the two F1 cars. "
-                "Focus on livery changes, color scheme modifications, sponsor branding updates, and design element changes. "
-                "Provide a concise technical report.\n"
-                "ASSISTANT:"
-            )
-        else:  # anomaly
-            prompt = (
-                "USER: <image>\n"
-                "This is a 2x2 comparison grid showing: (top-left) reference F1 car, (top-right) test F1 car, "
-                "(bottom-left) anomaly heatmap, (bottom-right) detected anomaly mask.\n\n"
-                f"Analyze potential structural anomalies or damage. Severity: {severity:.2f if severity else 0.0}. "
-                "Focus on tire damage, bodywork issues, surface defects, or structural irregularities. "
-                "Provide a concise technical assessment.\n"
-                "ASSISTANT:"
-            )
-
-        # Generate
-        import torch
-        inputs = tokenizer(prompt, composite_pil, return_tensors="pt").to(model.device)
-
-        with torch.no_grad():
-            output = model.generate(**inputs, max_new_tokens=200, do_sample=False)
-
-        report = tokenizer.decode(output[0], skip_special_tokens=True)
-
-        # Extract only the assistant's response
-        if "ASSISTANT:" in report:
-            report = report.split("ASSISTANT:")[-1].strip()
-
-        return report
-
-    except Exception as e:
-        print(f"Warning: LLaVA generation failed: {e}")
-        return generate_rule_based_report(pipeline_type, severity, features, mask_area, pipeline_name)
+    return generate_rule_based_report(pipeline_type, severity, features, mask_area, pipeline_name)

@@ -154,7 +154,7 @@ def run_all_pipelines(image_a_path, image_b_path, pipelines_to_run=None):
             
             print(f"   - Generating report for {pipeline_name}...")
             
-            # Generate rule-based report (fast, no model downloads)
+            # Generate rule-based report (no model downloads needed)
             from llava.llava_report import generate_rule_based_report
             
             if "semantic" in pipeline_name.lower():
