@@ -308,24 +308,11 @@ class MOG2Detector:
     """MOG2 background subtraction on grayscale"""
     
     def __init__(self):
-        logger.info("="*60)
-        logger.info("MOG2 DETECTOR - Initializing")
-        logger.info(f"History: {CONFIG['mog2_history']}")
-        logger.info(f"Variance threshold: {CONFIG['mog2_var_threshold']}")
-        logger.info(f"Learning rate: {CONFIG['mog2_learning_rate']}")
-        
-        try:
-            self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(
-                history=CONFIG['mog2_history'],
-                varThreshold=CONFIG['mog2_var_threshold'],
-                detectShadows=False
-            )
-            logger.info("✓ MOG2 initialized successfully")
-            logger.info("="*60)
-        except Exception as e:
-            logger.error(f"MOG2 initialization failed: {e}", exc_info=True)
-            logger.info("="*60)
-            raise
+        self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(
+            history=CONFIG['mog2_history'],
+            varThreshold=CONFIG['mog2_var_threshold'],
+            detectShadows=False
+        )
     
     def detect(self, frame_gray):
         """Detect motion using MOG2"""
@@ -346,10 +333,6 @@ class PatchCoreDetector:
     """PatchCore anomaly detection on grayscale"""
     
     def __init__(self, frame_height, frame_width):
-        logger.info("="*60)
-        logger.info("PATCHCORE DETECTOR - Initializing")
-        logger.info(f"Frame dimensions: {frame_width}x{frame_height}")
-        
         self.reference_frame = None
         self.reference_features = None
         self.frame_height = frame_height
@@ -357,49 +340,25 @@ class PatchCoreDetector:
         self.patch_size = 16
         
         try:
-            logger.debug("Importing torchvision.models...")
             from torchvision import models
-            logger.debug("Importing torch...")
             import torch
             
             self.torch = torch
-            logger.debug(f"Checking CUDA availability...")
-            cuda_available = torch.cuda.is_available()
-            logger.info(f"CUDA available: {cuda_available}")
-            
-            if cuda_available:
-                logger.info(f"CUDA device: {torch.cuda.get_device_name(0)}")
-                logger.info(f"CUDA memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-            
-            self.device = torch.device('cuda' if cuda_available else 'cpu')
-            logger.info(f"Using device: {self.device}")
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             
             # Load ResNet18 for feature extraction
-            logger.debug("Loading ResNet18 model...")
             self.model = models.resnet18(pretrained=True)
-            logger.debug("Setting model to eval mode...")
             self.model.eval()
-            logger.debug(f"Moving model to {self.device}...")
             self.model.to(self.device)
             
             # Remove classification layer, keep features
-            logger.debug("Creating feature extractor...")
             self.feature_extractor = torch.nn.Sequential(*list(self.model.children())[:-1])
             
-            logger.info(f"✓ PatchCore initialized successfully on {self.device}")
             print(f"   ✓ PatchCore initialized on {self.device}")
             self.initialized = True
-            logger.info("="*60)
-        except ImportError as e:
-            logger.error(f"Import error during initialization: {e}", exc_info=True)
-            print(f"   ✗ PatchCore initialization failed: Missing module - {e}")
-            self.initialized = False
-            logger.info("="*60)
         except Exception as e:
-            logger.error(f"PatchCore initialization failed: {e}", exc_info=True)
             print(f"   ✗ PatchCore initialization failed: {e}")
             self.initialized = False
-            logger.info("="*60)
     
     def extract_features(self, frame_gray):
         """Extract features from grayscale frame"""
@@ -487,8 +446,14 @@ class PatchCoreDetector:
             
             # Compute feature distance
             logger.debug("Computing L2 distance between features...")
+            
+            # Flatten features for distance computation
+            current_flat = current_features.flatten()
+            reference_flat = self.reference_features.flatten()
+            logger.debug(f"Flattened shapes - current: {current_flat.shape}, reference: {reference_flat.shape}")
+            
             feature_distance = np.linalg.norm(
-                current_features - self.reference_features,
+                current_flat - reference_flat,
                 ord=2
             )
             logger.debug(f"Feature distance: {feature_distance:.4f}")
@@ -524,10 +489,6 @@ class PatchCoreSAMDetector:
     """PatchCore + SAM anomaly detection on grayscale"""
     
     def __init__(self, frame_height, frame_width):
-        logger.info("="*60)
-        logger.info("PATCHCORE+SAM DETECTOR - Initializing")
-        logger.info(f"Frame dimensions: {frame_width}x{frame_height}")
-        
         self.reference_frame = None
         self.frame_height = frame_height
         self.frame_width = frame_width
@@ -535,61 +496,34 @@ class PatchCoreSAMDetector:
         self.device = None
         
         try:
-            logger.debug("Importing torch...")
             import torch
-            
-            logger.debug("Checking CUDA availability...")
-            cuda_available = torch.cuda.is_available()
-            logger.info(f"CUDA available: {cuda_available}")
-            
-            if cuda_available:
-                logger.info(f"CUDA device: {torch.cuda.get_device_name(0)}")
-                logger.info(f"CUDA memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-            
-            logger.debug("Importing PatchCore+SAM pipeline components...")
             from pipelines.anomaly_patchcore_sam import run_patchcore_sam_pipeline
             from utils.sam_refine import sam_refine
             from utils.rough_mask import generate_rough_mask
-            logger.debug("All pipeline components imported successfully")
             
             self.run_patchcore_sam_pipeline = run_patchcore_sam_pipeline
             self.sam_refine = sam_refine
             self.generate_rough_mask = generate_rough_mask
             
             # Set device to GPU if available
-            self.device = torch.device('cuda' if cuda_available else 'cpu')
-            logger.info(f"Using device: {self.device}")
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            print(f"   ✓ PatchCore+SAM initialized on {self.device}")
             
             # Force SAM to use GPU by setting torch default device
-            if cuda_available:
-                logger.debug("Setting CUDA device 0 as default...")
+            if torch.cuda.is_available():
                 torch.cuda.set_device(0)
-                logger.info(f"✓ GPU allocated for SAM - CUDA enabled")
-                print(f"   ✓ PatchCore+SAM initialized on {self.device}")
+                print(f"   ✓ GPU allocated for SAM - CUDA enabled")
                 # Verify GPU is being used
-                logger.info(f"GPU Device: {torch.cuda.get_device_name(0)}")
-                logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-                print(f"   ✓ GPU Device: {torch.cuda.get_device_name(0)}")
-                print(f"   ✓ GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+                if torch.cuda.is_available():
+                    print(f"   ✓ GPU Device: {torch.cuda.get_device_name(0)}")
+                    print(f"   ✓ GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
             else:
-                logger.warning("CUDA not available, using CPU")
                 print(f"   ⚠️ CUDA not available, using CPU")
             
             self.initialized = True
-            logger.info("✓ PatchCore+SAM initialized successfully")
-            logger.info("="*60)
-        except ImportError as e:
-            logger.error(f"Import error during initialization: {e}", exc_info=True)
-            logger.error("Make sure pipelines/anomaly_patchcore_sam.py and utils/ modules exist")
-            print(f"   ✗ PatchCore+SAM initialization failed: Missing module - {e}")
-            print(f"   ✗ Check that pipelines/anomaly_patchcore_sam.py exists")
-            self.initialized = False
-            logger.info("="*60)
         except Exception as e:
-            logger.error(f"PatchCore+SAM initialization failed: {e}", exc_info=True)
             print(f"   ✗ PatchCore+SAM initialization failed: {e}")
             self.initialized = False
-            logger.info("="*60)
     
     def detect(self, frame_gray):
         """Detect anomalies using PatchCore + SAM"""
@@ -668,32 +602,9 @@ class HybridDetector:
     """Combine MOG2, PatchCore, and PatchCore+SAM"""
     
     def __init__(self, frame_height, frame_width):
-        logger.info("="*60)
-        logger.info("HYBRID DETECTOR - Initializing")
-        logger.info(f"Frame dimensions: {frame_width}x{frame_height}")
-        
-        try:
-            logger.debug("Initializing MOG2 detector...")
-            self.mog2 = MOG2Detector()
-            logger.debug("MOG2 detector ready")
-            
-            logger.debug("Initializing PatchCore detector...")
-            self.patchcore = PatchCoreDetector(frame_height, frame_width)
-            logger.debug(f"PatchCore detector ready (initialized: {self.patchcore.initialized})")
-            
-            logger.debug("Initializing PatchCore+SAM detector...")
-            self.patchcore_sam = PatchCoreSAMDetector(frame_height, frame_width)
-            logger.debug(f"PatchCore+SAM detector ready (initialized: {self.patchcore_sam.initialized})")
-            
-            logger.info("✓ Hybrid detector initialized successfully")
-            logger.info(f"  - MOG2: Ready")
-            logger.info(f"  - PatchCore: {'Ready' if self.patchcore.initialized else 'Failed'}")
-            logger.info(f"  - PatchCore+SAM: {'Ready' if self.patchcore_sam.initialized else 'Failed'}")
-            logger.info("="*60)
-        except Exception as e:
-            logger.error(f"Hybrid detector initialization failed: {e}", exc_info=True)
-            logger.info("="*60)
-            raise
+        self.mog2 = MOG2Detector()
+        self.patchcore = PatchCoreDetector(frame_height, frame_width)
+        self.patchcore_sam = PatchCoreSAMDetector(frame_height, frame_width)
     
     def detect(self, frame_gray):
         """Detect using all three methods"""
