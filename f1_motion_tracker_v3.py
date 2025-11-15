@@ -12,10 +12,29 @@ import tkinter as tk
 from tkinter import filedialog
 import gc
 from tqdm import tqdm
+import logging
+from datetime import datetime
 
 print("🏎️ F1 DRIVER ONBOARD MOTION TRACKER V3.0")
 print("="*70)
 print("✅ Imports loaded")
+
+# Setup detailed logging for PatchCore debugging
+log_dir = "logs"
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, f"f1_tracker_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - [%(funcName)s] - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info("F1 Motion Tracker V3.0 initialized")
+logger.info(f"Log file: {log_file}")
 
 # Check and fix PyTorch CUDA if needed
 try:
@@ -344,64 +363,112 @@ class PatchCoreDetector:
     def extract_features(self, frame_gray):
         """Extract features from grayscale frame"""
         if not self.initialized:
+            logger.error("PatchCore not initialized")
             return None
         
         try:
+            logger.debug("="*60)
+            logger.debug("EXTRACT_FEATURES - Starting")
+            logger.debug(f"Input frame_gray shape: {frame_gray.shape}, dtype: {frame_gray.dtype}")
+            
             # Prepare frame for model
             frame_rgb = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
+            logger.debug(f"After GRAY2BGR: {frame_rgb.shape}")
+            
             frame_resized = cv2.resize(frame_rgb, (224, 224))
+            logger.debug(f"After resize to (224,224): {frame_resized.shape}")
             
             # Normalize
             frame_normalized = frame_resized.astype(np.float32) / 255.0
+            logger.debug(f"After normalization [0,1]: dtype={frame_normalized.dtype}, min={frame_normalized.min():.4f}, max={frame_normalized.max():.4f}")
+            
             frame_normalized = (frame_normalized - 0.5) / 0.5
+            logger.debug(f"After normalization [-1,1]: min={frame_normalized.min():.4f}, max={frame_normalized.max():.4f}")
             
             # Convert to tensor
+            logger.debug(f"Pre-permute shape: {frame_normalized.shape}")
             frame_tensor = self.torch.from_numpy(frame_normalized).permute(2, 0, 1).unsqueeze(0)
+            logger.debug(f"After permute+unsqueeze: {frame_tensor.shape}")
+            
+            if frame_tensor.shape != (1, 3, 224, 224):
+                error_msg = f"DIMENSION ERROR: Expected (1,3,224,224), got {frame_tensor.shape}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
             frame_tensor = frame_tensor.to(self.device)
+            logger.debug(f"Tensor moved to device: {self.device}")
             
             # Extract features
             with self.torch.no_grad():
+                logger.debug("Running feature extractor...")
                 features = self.feature_extractor(frame_tensor)
+                logger.debug(f"Features extracted: {features.shape}")
             
-            return features.cpu().numpy()
+            features_np = features.cpu().numpy()
+            logger.debug(f"Features converted to numpy: {features_np.shape}")
+            logger.debug("EXTRACT_FEATURES - Complete")
+            logger.debug("="*60)
+            
+            return features_np
         except Exception as e:
+            logger.error(f"Feature extraction failed: {e}", exc_info=True)
             print(f"   ✗ Feature extraction failed: {e}")
             return None
     
     def detect(self, frame_gray):
         """Detect anomalies using PatchCore"""
         if not self.initialized:
+            logger.warning("PatchCore not initialized, returning zero mask")
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
         
         try:
+            logger.info("="*60)
+            logger.info("PATCHCORE DETECT - Starting")
+            logger.info(f"Input frame shape: {frame_gray.shape}, dtype: {frame_gray.dtype}")
+            
             current_features = self.extract_features(frame_gray)
             
             if current_features is None:
+                logger.error("Feature extraction returned None")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
+            
+            logger.debug(f"Current features shape: {current_features.shape}")
             
             # Initialize reference on first frame
             if self.reference_features is None:
+                logger.info("Initializing reference frame (first frame)")
                 self.reference_frame = frame_gray.copy()
                 self.reference_features = current_features
+                logger.debug(f"Reference features stored: {self.reference_features.shape}")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
             
+            logger.debug(f"Reference features shape: {self.reference_features.shape}")
+            
             # Compute feature distance
+            logger.debug("Computing L2 distance between features...")
             feature_distance = np.linalg.norm(
                 current_features - self.reference_features,
                 ord=2
             )
+            logger.debug(f"Feature distance: {feature_distance:.4f}")
             
             # Normalize to 0-255
             anomaly_score = min(255, int(feature_distance * 10))
+            logger.debug(f"Anomaly score (0-255): {anomaly_score}")
             
             # Create heatmap
             anomaly_map = np.ones_like(frame_gray) * anomaly_score
+            logger.debug(f"Anomaly map created: shape={anomaly_map.shape}, value={anomaly_score}")
             
             # Threshold
             _, binary_map = cv2.threshold(anomaly_map, 30, 255, cv2.THRESH_BINARY)
+            logger.debug(f"Binary map: non-zero pixels={np.count_nonzero(binary_map)}")
+            logger.info("PATCHCORE DETECT - Complete")
+            logger.info("="*60)
             
             return binary_map
         except Exception as e:
+            logger.error(f"PatchCore detection failed: {e}", exc_info=True)
             print(f"   ✗ PatchCore detection failed: {e}")
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
     
@@ -455,39 +522,66 @@ class PatchCoreSAMDetector:
     def detect(self, frame_gray):
         """Detect anomalies using PatchCore + SAM"""
         if not self.initialized:
+            logger.warning("PatchCore+SAM not initialized, returning zero mask")
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
         
         try:
+            logger.info("="*60)
+            logger.info("PATCHCORE+SAM DETECT - Starting")
+            logger.info(f"Input frame_gray shape: {frame_gray.shape}, dtype: {frame_gray.dtype}")
+            
             # Convert grayscale to BGR for pipeline
             frame_bgr = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
+            logger.debug(f"After GRAY2BGR: {frame_bgr.shape}")
             
             # Initialize reference on first frame
             if self.reference_frame is None:
+                logger.info("Initializing reference frame (first frame)")
                 self.reference_frame = frame_bgr.copy()
+                logger.debug(f"Reference frame stored: {self.reference_frame.shape}")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
             
+            logger.debug(f"Reference frame shape: {self.reference_frame.shape}")
+            
             # Generate rough mask from difference
+            logger.debug("Generating rough mask...")
             rough_mask, _ = self.generate_rough_mask(self.reference_frame, frame_bgr)
+            logger.debug(f"Rough mask: shape={rough_mask.shape}, non-zero={np.count_nonzero(rough_mask)}")
             
             # Refine with SAM
+            logger.debug("Refining with SAM...")
             refined_mask = self.sam_refine(frame_bgr, rough_mask)
+            logger.debug(f"Refined mask: shape={refined_mask.shape}, non-zero={np.count_nonzero(refined_mask)}")
             
             # Run PatchCore + SAM
+            logger.info("Running PatchCore+SAM pipeline...")
             result = self.run_patchcore_sam_pipeline(
                 self.reference_frame, refined_mask, ref_img=self.reference_frame
             )
             
             if result:
+                logger.debug(f"Pipeline result keys: {result.keys()}")
                 heatmap = result.get("heatmap")
                 if heatmap is not None:
+                    logger.debug(f"Heatmap shape: {heatmap.shape}")
                     # Convert to grayscale if needed
                     if len(heatmap.shape) == 3:
                         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2GRAY)
+                        logger.debug(f"Heatmap converted to grayscale: {heatmap.shape}")
                     
+                    logger.info(f"PATCHCORE+SAM DETECT - Complete (non-zero pixels: {np.count_nonzero(heatmap)})")
+                    logger.info("="*60)
                     return heatmap
+                else:
+                    logger.warning("Pipeline result has no heatmap")
+            else:
+                logger.warning("Pipeline returned None result")
             
+            logger.info("PATCHCORE+SAM DETECT - Returning zero mask")
+            logger.info("="*60)
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
         except Exception as e:
+            logger.error(f"PatchCore+SAM detection failed: {e}", exc_info=True)
             print(f"   ✗ PatchCore+SAM detection failed: {e}")
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
     
