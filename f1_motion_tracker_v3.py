@@ -968,24 +968,32 @@ class DriverMotionVisualizer:
         
         # Use specified mode or default from CONFIG
         mode = output_mode if output_mode else CONFIG['output_mode']
+        logger.debug(f"Visualize frame {frame_num}: mode={mode}, motion={motion_percentage:.2f}%")
         
-        # Create visualization
-        if mode == 'mask':
-            result = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        elif mode == 'overlay':
-            result = self.create_overlay_gray(frame_gray, mask)
-            self.draw_contours(result, contours)
-        elif mode == 'heatmap':
-            result = self.create_heatmap_gray(frame_gray, mask)
-        elif mode == 'side_by_side':
-            result = self.create_side_by_side_gray(frame_gray, mask)
-        else:
-            result = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
-        
-        # Add info
-        self.add_info_panel(result, frame_num, total_frames, motion_percentage, method)
-        
-        return result
+        try:
+            # Create visualization
+            if mode == 'mask':
+                result = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+            elif mode == 'overlay':
+                result = self.create_overlay_gray(frame_gray, mask)
+                self.draw_contours(result, contours)
+            elif mode == 'heatmap':
+                result = self.create_heatmap_gray(frame_gray, mask)
+            elif mode == 'side_by_side':
+                result = self.create_side_by_side_gray(frame_gray, mask)
+            else:
+                logger.warning(f"Unknown visualization mode '{mode}', defaulting to BGR conversion")
+                result = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
+            
+            # Add info
+            self.add_info_panel(result, frame_num, total_frames, motion_percentage, method)
+            
+            logger.debug(f"Visualization created: {result.shape}, mode={mode}")
+            return result
+        except Exception as e:
+            logger.error(f"Visualization error for mode {mode}: {e}", exc_info=True)
+            # Return basic BGR frame as fallback
+            return cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
 
 # ============================================================================
 # MAIN PROCESSING FUNCTION
@@ -1054,12 +1062,14 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     
     # Check if multi-output mode
     multi_output = CONFIG['output_mode'] == 'all'
+    logger.info(f"Output mode: {'Multi-output (all 4 types)' if multi_output else CONFIG['output_mode']}")
     
     if multi_output:
         # Create 4 separate output files
         base_path = output_video_path.rsplit('.', 1)[0]
         ext = output_video_path.rsplit('.', 1)[1] if '.' in output_video_path else 'mp4'
         
+        logger.info("Initializing multi-output mode...")
         outputs = {
             'mask': cv2.VideoWriter(f"{base_path}_mask.{ext}", fourcc, fps, (frame_width, frame_height)),
             'overlay': cv2.VideoWriter(f"{base_path}_overlay.{ext}", fourcc, fps, (frame_width, frame_height)),
@@ -1067,6 +1077,15 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
             'side_by_side': cv2.VideoWriter(f"{base_path}_sidebyside.{ext}", fourcc, fps, (frame_width * 2, frame_height))
         }
         
+        # Verify all writers opened successfully
+        failed_writers = [mode for mode, writer in outputs.items() if not writer.isOpened()]
+        if failed_writers:
+            logger.error(f"Failed to open video writers: {failed_writers}")
+            print(f"❌ Error: Failed to initialize output writers for: {', '.join(failed_writers)}")
+            cap.release()
+            return False
+        
+        logger.info(f"Multi-output writers initialized successfully: {list(outputs.keys())}")
         print(f"\n✅ Multi-Output Mode - Generating 4 videos:")
         print(f"   1. {base_path}_mask.{ext}")
         print(f"   2. {base_path}_overlay.{ext}")
@@ -1084,8 +1103,16 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
             output_width = frame_width
             output_height = frame_height
         
+        logger.info(f"Single output mode: {CONFIG['output_mode']}, dimensions: {output_width}x{output_height}")
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (output_width, output_height))
         
+        if not out.isOpened():
+            logger.error(f"Failed to open output video writer: {output_video_path}")
+            print(f"❌ Error: Failed to initialize output video: {output_video_path}")
+            cap.release()
+            return False
+        
+        logger.info(f"Single output writer initialized successfully")
         print(f"\n✅ Output: {output_video_path}")
         print(f"   Mode: {CONFIG['output_mode']}")
         print(f"   Method: {method_name}")
@@ -1093,6 +1120,11 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     # Initialize visualization
     visualizer = DriverMotionVisualizer()
     mask_history = deque(maxlen=CONFIG['smooth_window'])
+    
+    logger.info(f"Starting video processing loop...")
+    logger.info(f"Frames to process: {frames_to_process}")
+    if multi_output:
+        logger.info("Multi-output mode: Will generate 4 simultaneous outputs")
     
     print(f"\n🚀 Processing video...")
     print("="*70)
@@ -1121,62 +1153,93 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
             # Preprocess
             processed_gray = preprocess_frame_grayscale(frame_gray)
             
+            # Initialize output_frame for preview (in case multi_output is used)
+            output_frame = None
+            
             # Detect based on method
             if detection_method == 'hybrid':
+                logger.debug(f"Frame {processed_count}: Hybrid detection starting...")
                 masks_dict = detector.detect(processed_gray)
                 combined_mask = detector.combine_masks(masks_dict)
                 
                 # Refine
                 refined_mask, contours = refine_mask(combined_mask)
+                logger.debug(f"Frame {processed_count}: Refined mask, contours: {len(contours)}")
                 
                 # Visualize with all masks
                 if CONFIG['output_mode'] == 'comparison' and not multi_output:
+                    logger.debug(f"Frame {processed_count}: Creating comparison visualization")
                     output_frame = visualizer.create_comparison(frame_gray, masks_dict)
                     out.write(output_frame)
                 elif multi_output:
+                    logger.debug(f"Frame {processed_count}: Generating all 4 visualization types...")
                     # Generate all 4 visualization types
                     for mode, writer in outputs.items():
-                        vis_frame = visualizer.visualize(
-                            frame_gray, refined_mask, contours,
-                            processed_count + 1, frames_to_process, method_name,
-                            output_mode=mode
-                        )
-                        writer.write(vis_frame)
+                        try:
+                            vis_frame = visualizer.visualize(
+                                frame_gray, refined_mask, contours,
+                                processed_count + 1, frames_to_process, method_name,
+                                output_mode=mode
+                            )
+                            writer.write(vis_frame)
+                            logger.debug(f"Frame {processed_count}: Written to {mode} output")
+                            
+                            # Keep one for preview
+                            if mode == 'overlay':
+                                output_frame = vis_frame
+                        except Exception as e:
+                            logger.error(f"Frame {processed_count}: Error writing {mode} output: {e}", exc_info=True)
+                            print(f"⚠️ Error writing frame {processed_count} to {mode} output: {e}")
                 else:
+                    logger.debug(f"Frame {processed_count}: Creating single visualization")
                     output_frame = visualizer.visualize(
                         frame_gray, refined_mask, contours,
                         processed_count + 1, frames_to_process, method_name
                     )
                     out.write(output_frame)
             else:
+                logger.debug(f"Frame {processed_count}: {detection_method} detection starting...")
                 fg_mask = detector.detect(processed_gray)
                 
                 # Refine
                 refined_mask, contours = refine_mask(fg_mask)
+                logger.debug(f"Frame {processed_count}: Refined mask, contours: {len(contours)}")
                 
                 # Temporal smoothing
                 if CONFIG['temporal_smoothing']:
                     refined_mask = apply_temporal_smoothing(refined_mask, mask_history)
+                    logger.debug(f"Frame {processed_count}: Temporal smoothing applied")
                 
                 # Visualize
                 if multi_output:
+                    logger.debug(f"Frame {processed_count}: Generating all 4 visualization types...")
                     # Generate all 4 visualization types
                     for mode, writer in outputs.items():
-                        vis_frame = visualizer.visualize(
-                            frame_gray, refined_mask, contours,
-                            processed_count + 1, frames_to_process, method_name,
-                            output_mode=mode
-                        )
-                        writer.write(vis_frame)
+                        try:
+                            vis_frame = visualizer.visualize(
+                                frame_gray, refined_mask, contours,
+                                processed_count + 1, frames_to_process, method_name,
+                                output_mode=mode
+                            )
+                            writer.write(vis_frame)
+                            logger.debug(f"Frame {processed_count}: Written to {mode} output")
+                            
+                            # Keep one for preview
+                            if mode == 'overlay':
+                                output_frame = vis_frame
+                        except Exception as e:
+                            logger.error(f"Frame {processed_count}: Error writing {mode} output: {e}", exc_info=True)
+                            print(f"⚠️ Error writing frame {processed_count} to {mode} output: {e}")
                 else:
+                    logger.debug(f"Frame {processed_count}: Creating single visualization")
                     output_frame = visualizer.visualize(
                         frame_gray, refined_mask, contours,
                         processed_count + 1, frames_to_process, method_name
                     )
                     out.write(output_frame)
             
-            # Show preview
-            if CONFIG['show_preview']:
+            # Show preview (only if output_frame exists)
+            if CONFIG['show_preview'] and output_frame is not None:
                 try:
                     preview = cv2.resize(output_frame, None,
                                        fx=CONFIG['preview_scale'],
@@ -1185,11 +1248,16 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
                     
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
+                        logger.info("User stopped processing with 'q' key")
                         print("\n⏹️ Stopped by user")
                         break
                 except cv2.error as e:
                     # GUI not available, just skip preview
+                    logger.warning(f"Preview not available: {e}")
                     print(f"\n⚠️ Preview not available (headless environment)")
+                    CONFIG['show_preview'] = False
+                except Exception as e:
+                    logger.error(f"Preview error: {e}", exc_info=True)
                     CONFIG['show_preview'] = False
             
             # Update progress bar
@@ -1210,18 +1278,37 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
                     pass
     
     except KeyboardInterrupt:
+        logger.warning("Processing interrupted by user (Ctrl+C)")
         print("\n⏹️ Interrupted by user")
     
+    except Exception as e:
+        logger.error(f"Unexpected error during processing: {e}", exc_info=True)
+        print(f"\n❌ Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+    
     finally:
+        logger.info("Cleaning up resources...")
         pbar.close()
         cap.release()
+        logger.debug("Video capture released")
         
         # Release video writer(s)
         if multi_output:
-            for writer in outputs.values():
-                writer.release()
+            logger.info("Releasing multi-output video writers...")
+            for mode, writer in outputs.items():
+                try:
+                    writer.release()
+                    logger.debug(f"Released {mode} writer")
+                except Exception as e:
+                    logger.error(f"Error releasing {mode} writer: {e}")
+            logger.info("All multi-output writers released")
         else:
-            out.release()
+            try:
+                out.release()
+                logger.debug("Single output writer released")
+            except Exception as e:
+                logger.error(f"Error releasing output writer: {e}")
         
         try:
             cv2.destroyAllWindows()
@@ -1234,14 +1321,28 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
             import torch
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                logger.debug("GPU memory cleared")
                 print("\n   ✓ GPU memory cleared")
         except:
             pass
+        
+        logger.info(f"Processing summary: {processed_count} frames completed")
     
     print("\n" + "="*70)
     print(f"✅ Processing complete!")
     print(f"   Processed {processed_count} frames")
-    print(f"   Output saved: {output_video_path}")
+    if multi_output:
+        logger.info("Multi-output processing completed successfully")
+        print(f"   4 output videos generated:")
+        base_path = output_video_path.rsplit('.', 1)[0]
+        ext = output_video_path.rsplit('.', 1)[1] if '.' in output_video_path else 'mp4'
+        print(f"      - {base_path}_mask.{ext}")
+        print(f"      - {base_path}_overlay.{ext}")
+        print(f"      - {base_path}_heatmap.{ext}")
+        print(f"      - {base_path}_sidebyside.{ext}")
+    else:
+        logger.info("Single output processing completed successfully")
+        print(f"   Output saved: {output_video_path}")
     print("="*70)
     
     return True
