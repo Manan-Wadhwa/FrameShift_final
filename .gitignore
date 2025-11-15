@@ -74,7 +74,6 @@ streamlit_run.log
 Thumbs.db
 
 # Logs
-*.log
 logs/
 
 # Environment variables

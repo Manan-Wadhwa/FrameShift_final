@@ -1,0 +1,1214 @@
+2025-11-16 03:41:39,962 - INFO - [<module>] - F1 Motion Tracker V3.0 initialized
+2025-11-16 03:41:39,962 - INFO - [<module>] - Log file: logs\f1_tracker_debug_20251116_034139.log
+2025-11-16 03:41:58,838 - INFO - [__init__] - ============================================================
+2025-11-16 03:41:58,838 - INFO - [__init__] - PATCHCORE DETECTOR - Initializing
+2025-11-16 03:41:58,838 - INFO - [__init__] - Frame dimensions: 1920x1080
+2025-11-16 03:41:58,852 - DEBUG - [__init__] - Importing torchvision.models...
+2025-11-16 03:42:00,573 - DEBUG - [__init__] - Importing torch...
+2025-11-16 03:42:00,573 - DEBUG - [__init__] - Checking CUDA availability...
+2025-11-16 03:42:00,573 - INFO - [__init__] - CUDA available: True
+2025-11-16 03:42:00,588 - INFO - [__init__] - CUDA device: NVIDIA GeForce RTX 3070 Ti Laptop GPU
+2025-11-16 03:42:00,588 - INFO - [__init__] - CUDA memory: 8.0 GB
+2025-11-16 03:42:00,588 - INFO - [__init__] - Using device: cuda
+2025-11-16 03:42:00,588 - DEBUG - [__init__] - Loading ResNet18 model...
+2025-11-16 03:42:00,700 - DEBUG - [__init__] - Setting model to eval mode...
+2025-11-16 03:42:00,700 - DEBUG - [__init__] - Moving model to cuda...
+2025-11-16 03:42:01,464 - DEBUG - [__init__] - Creating feature extractor...
+2025-11-16 03:42:01,512 - INFO - [__init__] - ============================================================
+2025-11-16 03:42:01,855 - INFO - [detect] - ============================================================
+2025-11-16 03:42:01,856 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:01,856 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:01,856 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:01,856 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:01,856 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:01,858 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:01,858 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:01,868 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:01,868 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:01,868 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:01,870 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:01,871 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:01,871 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:02,057 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:02,057 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:02,057 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:02,057 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:02,057 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:02,057 - INFO - [detect] - Initializing reference frame (first frame)
+2025-11-16 03:42:02,057 - DEBUG - [detect] - Reference features stored: (1, 512, 1, 1)
+2025-11-16 03:42:02,442 - INFO - [detect] - ============================================================
+2025-11-16 03:42:02,442 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:02,442 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:02,442 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:02,442 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:02,442 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:02,442 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:02,444 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:02,445 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=0.9961
+2025-11-16 03:42:02,446 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=0.9922
+2025-11-16 03:42:02,446 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:02,446 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:02,446 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:02,446 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:02,454 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:02,456 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:02,456 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:02,456 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:02,456 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:02,457 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:02,457 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:02,457 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:02,861 - INFO - [detect] - ============================================================
+2025-11-16 03:42:02,862 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:02,862 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:02,862 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:02,862 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:02,862 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0275, max=1.0000
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9451, max=1.0000
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:02,863 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:02,869 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:02,869 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:02,869 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:02,869 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:02,870 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:02,870 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:02,870 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:02,870 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:03,286 - INFO - [detect] - ============================================================
+2025-11-16 03:42:03,286 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:03,286 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:03,286 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:03,286 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:03,286 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:03,290 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:03,290 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:03,290 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:03,290 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:03,290 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:03,292 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:03,292 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:03,292 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:03,296 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:03,306 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:03,306 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:03,306 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:03,306 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:03,306 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:03,306 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:03,306 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:03,716 - INFO - [detect] - ============================================================
+2025-11-16 03:42:03,716 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:03,716 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:03,716 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:03,716 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:03,718 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:03,718 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:03,718 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:03,720 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:03,725 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:03,727 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:03,727 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:03,727 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:03,728 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:03,728 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:03,728 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:03,728 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:04,107 - INFO - [detect] - ============================================================
+2025-11-16 03:42:04,107 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:04,107 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,107 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,107 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:04,107 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,107 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0039, max=1.0000
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9922, max=1.0000
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:04,110 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:04,112 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:04,112 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:04,112 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:04,112 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,112 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,116 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,116 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:04,116 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:04,509 - INFO - [detect] - ============================================================
+2025-11-16 03:42:04,509 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:04,509 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,509 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,509 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:04,509 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,511 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:04,511 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:04,512 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=0.9961
+2025-11-16 03:42:04,512 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=0.9922
+2025-11-16 03:42:04,512 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:04,512 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:04,513 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:04,513 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:04,519 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:04,520 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:04,520 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:04,520 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,520 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,520 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,522 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:04,522 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:04,903 - INFO - [detect] - ============================================================
+2025-11-16 03:42:04,903 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:04,903 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0275, max=1.0000
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9451, max=1.0000
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:04,903 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:04,907 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:04,912 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,912 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:04,912 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:04,912 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:05,316 - INFO - [detect] - ============================================================
+2025-11-16 03:42:05,316 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:05,316 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:05,316 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:05,316 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:05,316 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:05,316 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:05,320 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:05,327 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:05,327 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:05,327 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:05,327 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:05,328 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:05,328 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:05,328 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:05,328 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:05,784 - INFO - [detect] - ============================================================
+2025-11-16 03:42:05,784 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:05,784 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:05,784 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:05,784 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:05,785 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:05,785 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:05,786 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:05,793 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:05,793 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:05,793 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:05,793 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:05,795 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:05,795 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:05,795 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:05,795 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:06,195 - INFO - [detect] - ============================================================
+2025-11-16 03:42:06,195 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:06,195 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,196 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,196 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:06,196 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,197 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:06,197 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:06,197 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0275, max=1.0000
+2025-11-16 03:42:06,197 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9451, max=1.0000
+2025-11-16 03:42:06,198 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:06,198 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:06,198 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:06,198 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:06,202 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:06,203 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:06,203 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:06,203 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,203 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,204 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,204 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:06,204 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:06,582 - INFO - [detect] - ============================================================
+2025-11-16 03:42:06,582 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:06,582 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,584 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,584 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:06,584 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,584 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:06,585 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:06,585 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=0.9961
+2025-11-16 03:42:06,586 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=0.9922
+2025-11-16 03:42:06,586 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:06,586 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:06,586 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:06,586 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:06,590 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:06,591 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:06,591 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:06,591 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,591 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,591 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,592 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:06,592 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:06,975 - INFO - [detect] - ============================================================
+2025-11-16 03:42:06,975 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:06,975 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0078, max=1.0000
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9843, max=1.0000
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:06,975 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:06,984 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:06,984 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:06,984 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:06,985 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:06,985 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,985 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:06,985 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:06,986 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:07,362 - INFO - [detect] - ============================================================
+2025-11-16 03:42:07,362 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:07,362 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0118, max=1.0000
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9765, max=1.0000
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:07,364 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:07,371 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:07,371 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:07,371 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:07,371 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:07,747 - INFO - [detect] - ============================================================
+2025-11-16 03:42:07,747 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:07,747 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:07,748 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:07,756 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:07,756 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:07,756 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:07,758 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:07,758 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:07,758 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:07,758 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:07,758 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:08,160 - INFO - [detect] - ============================================================
+2025-11-16 03:42:08,160 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:08,160 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,160 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:08,160 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:08,160 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,160 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=0.9961
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=0.9922
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:08,170 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:08,176 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:08,176 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:08,176 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:08,176 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:08,579 - INFO - [detect] - ============================================================
+2025-11-16 03:42:08,579 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:08,579 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,579 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:08,579 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:08,579 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,582 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:08,583 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:08,587 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:08,588 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:08,588 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:08,588 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:08,589 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:08,589 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:08,589 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:08,589 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:08,992 - INFO - [detect] - ============================================================
+2025-11-16 03:42:08,992 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:08,992 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,992 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:08,992 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:08,992 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:08,992 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:09,001 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:09,001 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:09,002 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:09,002 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:09,002 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:09,002 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:09,003 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:09,007 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:09,007 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:09,007 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:09,007 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:09,008 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,008 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,008 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:09,008 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:09,393 - INFO - [detect] - ============================================================
+2025-11-16 03:42:09,393 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:09,393 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:09,393 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0078, max=1.0000
+2025-11-16 03:42:09,397 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9843, max=1.0000
+2025-11-16 03:42:09,397 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:09,397 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:09,397 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:09,397 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:09,402 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:09,402 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:09,402 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:09,403 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:09,403 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,403 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,403 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:09,404 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:09,795 - INFO - [detect] - ============================================================
+2025-11-16 03:42:09,795 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:09,795 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:09,795 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:09,795 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:09,795 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:09,795 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:09,795 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:09,798 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0118, max=1.0000
+2025-11-16 03:42:09,798 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9765, max=1.0000
+2025-11-16 03:42:09,799 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:09,799 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:09,799 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:09,799 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:09,806 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:09,806 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:09,806 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:09,806 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:09,807 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,807 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:09,807 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:09,807 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:10,219 - INFO - [detect] - ============================================================
+2025-11-16 03:42:10,219 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:10,219 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:10,220 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:10,220 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:10,220 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:10,220 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:10,222 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:10,222 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0353, max=0.9961
+2025-11-16 03:42:10,222 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9294, max=0.9922
+2025-11-16 03:42:10,223 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:10,223 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:10,223 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:10,224 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:10,228 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:10,229 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:10,229 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:10,229 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:10,229 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:10,229 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:10,229 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:10,229 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:10,635 - INFO - [detect] - ============================================================
+2025-11-16 03:42:10,635 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:10,637 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:10,637 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:10,637 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:10,637 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:10,637 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:10,638 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:10,638 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:10,639 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:10,639 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:10,639 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:10,639 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:10,640 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:10,643 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:10,643 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:10,643 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:10,643 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:10,644 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:10,644 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:10,644 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:10,644 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:11,053 - INFO - [detect] - ============================================================
+2025-11-16 03:42:11,053 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:11,054 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,054 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,054 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:11,054 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,055 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:11,055 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:11,055 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:11,056 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:11,056 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:11,056 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:11,056 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:11,056 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:11,062 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:11,062 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:11,062 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:11,062 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,062 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,062 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,062 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:11,065 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:11,468 - INFO - [detect] - ============================================================
+2025-11-16 03:42:11,468 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:11,468 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,468 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,468 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:11,469 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,469 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:11,470 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:11,470 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:11,470 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:11,471 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:11,471 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:11,471 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:11,471 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:11,475 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:11,483 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:11,483 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:11,483 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,483 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,485 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,485 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:11,485 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:11,905 - INFO - [detect] - ============================================================
+2025-11-16 03:42:11,905 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:11,905 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,905 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,905 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:11,905 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:11,906 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:11,906 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:11,906 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0275, max=1.0000
+2025-11-16 03:42:11,907 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9451, max=1.0000
+2025-11-16 03:42:11,907 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:11,907 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:11,907 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:11,907 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:11,911 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:11,912 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:11,912 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:11,912 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:11,912 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,912 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:11,912 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:11,913 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:12,317 - INFO - [detect] - ============================================================
+2025-11-16 03:42:12,317 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:12,317 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:12,317 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:12,317 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:12,317 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:12,319 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:12,325 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:12,335 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:12,337 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:12,337 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:12,338 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:12,338 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:12,338 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:12,338 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:12,737 - INFO - [detect] - ============================================================
+2025-11-16 03:42:12,737 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:12,737 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:12,738 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:12,738 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:12,738 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:12,738 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:12,738 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:12,739 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0196, max=1.0000
+2025-11-16 03:42:12,739 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9608, max=1.0000
+2025-11-16 03:42:12,739 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:12,739 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:12,740 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:12,740 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:12,745 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:12,756 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:12,756 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:12,756 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:12,757 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:12,757 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:12,757 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:12,757 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:13,126 - INFO - [detect] - ============================================================
+2025-11-16 03:42:13,126 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:13,126 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:13,126 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:13,138 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:13,149 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:13,149 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:13,149 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,150 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,150 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,150 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:13,150 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:13,535 - INFO - [detect] - ============================================================
+2025-11-16 03:42:13,535 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:13,535 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0078, max=1.0000
+2025-11-16 03:42:13,535 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9843, max=1.0000
+2025-11-16 03:42:13,551 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:13,551 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:13,551 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:13,551 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:13,555 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:13,567 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:13,567 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:13,567 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,568 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,568 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,568 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:13,568 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:13,957 - INFO - [detect] - ============================================================
+2025-11-16 03:42:13,957 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:13,957 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=0.9961
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=0.9922
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:13,957 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:13,963 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:13,977 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:13,977 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:13,977 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:13,977 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,978 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:13,978 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:13,978 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:14,359 - INFO - [detect] - ============================================================
+2025-11-16 03:42:14,359 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:14,359 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:14,359 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:14,359 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:14,359 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:14,359 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:14,359 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0275, max=0.9961
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9451, max=0.9922
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:14,362 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:14,364 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:14,378 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:14,378 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:14,378 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:14,379 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:14,379 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:14,379 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:14,379 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:14,734 - INFO - [detect] - ============================================================
+2025-11-16 03:42:14,748 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:14,748 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:14,748 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:14,748 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:14,748 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:14,748 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:14,750 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:14,767 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:14,767 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:14,767 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:14,768 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:14,768 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:14,768 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:14,768 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:15,160 - INFO - [detect] - ============================================================
+2025-11-16 03:42:15,160 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:15,160 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0039, max=1.0000
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9922, max=1.0000
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:15,160 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:15,171 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:15,182 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:15,183 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:15,183 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:15,183 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:15,183 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:15,183 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:15,183 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:15,609 - INFO - [detect] - ============================================================
+2025-11-16 03:42:15,609 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:15,609 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=0.9961
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=0.9922
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:15,609 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:15,630 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:15,630 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:15,630 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:15,631 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:15,631 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:15,631 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:15,631 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:16,010 - INFO - [detect] - ============================================================
+2025-11-16 03:42:16,010 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:16,010 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:16,010 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:16,029 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:16,029 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:16,029 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,031 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,031 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,031 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:16,032 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:16,460 - INFO - [detect] - ============================================================
+2025-11-16 03:42:16,460 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:16,460 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:16,460 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:16,470 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:16,480 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:16,481 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:16,481 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,481 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,483 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,483 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:16,483 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:16,846 - INFO - [detect] - ============================================================
+2025-11-16 03:42:16,846 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:16,846 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:16,846 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:16,862 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:16,863 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:16,863 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:16,867 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:16,878 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:16,879 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:16,879 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:16,879 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,880 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:16,880 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:16,880 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:17,269 - INFO - [detect] - ============================================================
+2025-11-16 03:42:17,270 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:17,270 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:17,270 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:17,270 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:17,270 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:17,271 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:17,271 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:17,272 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0118, max=1.0000
+2025-11-16 03:42:17,272 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9765, max=1.0000
+2025-11-16 03:42:17,272 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:17,272 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:17,273 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:17,273 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:17,276 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:17,288 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:17,288 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:17,289 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:17,289 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:17,289 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:17,289 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:17,289 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:17,689 - INFO - [detect] - ============================================================
+2025-11-16 03:42:17,689 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:17,689 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:17,689 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:17,690 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:17,690 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:17,690 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:17,691 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:17,692 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0353, max=1.0000
+2025-11-16 03:42:17,692 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9294, max=1.0000
+2025-11-16 03:42:17,692 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:17,692 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:17,693 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:17,693 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:17,697 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:17,708 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:17,709 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:17,709 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:17,709 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:17,709 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:17,709 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:17,709 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:18,119 - INFO - [detect] - ============================================================
+2025-11-16 03:42:18,119 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:18,119 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,119 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,119 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:18,119 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,119 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0157, max=1.0000
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9686, max=1.0000
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:18,121 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:18,138 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:18,138 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:18,138 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,140 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,140 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,140 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:18,140 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:18,517 - INFO - [detect] - ============================================================
+2025-11-16 03:42:18,517 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:18,517 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0235, max=1.0000
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9529, max=1.0000
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:18,517 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:18,538 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:18,538 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:18,538 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,539 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,539 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,539 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:18,539 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:18,929 - INFO - [detect] - ============================================================
+2025-11-16 03:42:18,929 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:18,929 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,929 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,930 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:18,930 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:18,930 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:18,931 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:18,931 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0314, max=1.0000
+2025-11-16 03:42:18,931 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9373, max=1.0000
+2025-11-16 03:42:18,932 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:18,932 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:18,932 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:18,932 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:18,934 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:18,947 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:18,948 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:18,948 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:18,949 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,949 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:18,949 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:18,949 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
+2025-11-16 03:42:19,318 - INFO - [detect] - ============================================================
+2025-11-16 03:42:19,318 - INFO - [detect] - PATCHCORE DETECT - Starting
+2025-11-16 03:42:19,318 - INFO - [detect] - Input frame shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - EXTRACT_FEATURES - Starting
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - Input frame_gray shape: (1080, 1920), dtype: uint8
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - After GRAY2BGR: (1080, 1920, 3)
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - After resize to (224,224): (224, 224, 3)
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - After normalization [0,1]: dtype=float32, min=0.0314, max=1.0000
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - After normalization [-1,1]: min=-0.9373, max=1.0000
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - Pre-permute shape: (224, 224, 3)
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - After permute+unsqueeze: torch.Size([1, 3, 224, 224])
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - Tensor moved to device: cuda
+2025-11-16 03:42:19,327 - DEBUG - [extract_features] - Running feature extractor...
+2025-11-16 03:42:19,333 - DEBUG - [extract_features] - Features extracted: torch.Size([1, 512, 1, 1])
+2025-11-16 03:42:19,345 - DEBUG - [extract_features] - Features converted to numpy: (1, 512, 1, 1)
+2025-11-16 03:42:19,345 - DEBUG - [extract_features] - EXTRACT_FEATURES - Complete
+2025-11-16 03:42:19,345 - DEBUG - [extract_features] - ============================================================
+2025-11-16 03:42:19,346 - DEBUG - [detect] - Current features shape: (1, 512, 1, 1)
+2025-11-16 03:42:19,346 - DEBUG - [detect] - Reference features shape: (1, 512, 1, 1)
+2025-11-16 03:42:19,346 - DEBUG - [detect] - Computing L2 distance between features...
+2025-11-16 03:42:19,346 - ERROR - [detect] - PatchCore detection failed: Improper number of dimensions to norm.
+Traceback (most recent call last):
+  File "C:\Project\FrameShift_final\FrameShift_final\f1_motion_tracker_v3.py", line 490, in detect
+    feature_distance = np.linalg.norm(
+  File "C:\Project\FrameShift_final\FrameShift_final\myenv\lib\site-packages\numpy\linalg\_linalg.py", line 2831, in norm
+    raise ValueError("Improper number of dimensions to norm.")
+ValueError: Improper number of dimensions to norm.
