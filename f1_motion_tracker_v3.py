@@ -305,25 +305,53 @@ def apply_temporal_smoothing(mask, mask_history):
 # ============================================================================
 
 class MOG2Detector:
-    """MOG2 background subtraction on grayscale"""
+    """MOG2 background subtraction with optional PatchCore enhancement"""
     
-    def __init__(self):
+    def __init__(self, use_patchcore=False, frame_height=None, frame_width=None, alignment_method='ecc'):
+        logger.info("Initializing MOG2Detector...")
+        
         self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(
             history=CONFIG['mog2_history'],
             varThreshold=CONFIG['mog2_var_threshold'],
             detectShadows=False
         )
+        logger.info("   ✓ MOG2 background subtractor initialized")
+        
+        # Optional PatchCore enhancement
+        self.use_patchcore = use_patchcore
+        self.patchcore = None
+        
+        if use_patchcore and frame_height and frame_width:
+            logger.info("   Initializing PatchCore enhancement for MOG2...")
+            self.patchcore = PatchCoreDetector(frame_height, frame_width, alignment_method=alignment_method)
+            print(f"   ✓ MOG2 enhanced with PatchCore (alignment: {alignment_method})")
+        
+        print(f"   ✓ MOG2 detector initialized (PatchCore: {use_patchcore})")
     
     def detect(self, frame_gray):
-        """Detect motion using MOG2"""
+        """Detect motion using MOG2 with optional PatchCore enhancement"""
+        # Base MOG2 detection
         fg_mask = self.bg_subtractor.apply(
             frame_gray,
             learningRate=CONFIG['mog2_learning_rate']
         )
+        
+        # Enhance with PatchCore if enabled
+        if self.use_patchcore and self.patchcore:
+            logger.debug("Enhancing MOG2 mask with PatchCore...")
+            patchcore_mask = self.patchcore.detect(frame_gray)
+            
+            # Combine: Take union of both detections
+            # MOG2 catches fast motion, PatchCore catches subtle changes
+            combined = cv2.bitwise_or(fg_mask, patchcore_mask)
+            logger.debug(f"Combined mask - MOG2: {np.count_nonzero(fg_mask)}, PatchCore: {np.count_nonzero(patchcore_mask)}, Combined: {np.count_nonzero(combined)}")
+            
+            return combined
+        
         return fg_mask
     
     def get_name(self):
-        return "MOG2"
+        return "MOG2+PatchCore" if self.use_patchcore else "MOG2"
 
 # ============================================================================
 # PATCHCORE MOTION DETECTION (Grayscale)
@@ -332,16 +360,20 @@ class MOG2Detector:
 class PatchCoreDetector:
     """PatchCore anomaly detection on grayscale"""
     
-    def __init__(self, frame_height, frame_width):
+    def __init__(self, frame_height, frame_width, alignment_method='ecc'):
         self.reference_frame = None
         self.frame_height = frame_height
         self.frame_width = frame_width
         
-        # Patch configuration
-        self.patch_size = 64  # Size of each patch (64x64)
-        self.stride = 32      # Stride for overlapping patches
+        # Patch configuration - larger patches for faster compute
+        self.patch_size = 128  # Size of each patch (128x128) - larger for speed
+        self.stride = 64       # Stride for overlapping patches
         self.memory_bank = []  # Store reference patch features
         self.patch_positions = []  # Store patch positions for mapping
+        
+        # Alignment configuration
+        self.alignment_method = alignment_method  # 'ecc', 'orb', 'phase', 'optical_flow', 'none'
+        self.use_alignment = alignment_method != 'none'
         
         try:
             from torchvision import models
@@ -360,6 +392,7 @@ class PatchCoreDetector:
             
             print(f"   ✓ PatchCore initialized on {self.device}")
             print(f"   ✓ Patch size: {self.patch_size}x{self.patch_size}, stride: {self.stride}")
+            print(f"   ✓ Alignment method: {self.alignment_method}")
             self.initialized = True
         except Exception as e:
             print(f"   ✗ PatchCore initialization failed: {e}")
@@ -466,6 +499,37 @@ class PatchCoreDetector:
             print(f"   ✗ Feature extraction failed: {e}")
             return None
     
+    def align_frame(self, frame_gray):
+        """Align current frame to reference using selected method"""
+        if not self.use_alignment or self.reference_frame is None:
+            return frame_gray
+        
+        try:
+            from utils.alignment import ecc_alignment, orb_alignment, phase_correlation_alignment, optical_flow_alignment
+            
+            # Convert to BGR for alignment functions
+            frame_bgr = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
+            ref_bgr = cv2.cvtColor(self.reference_frame, cv2.COLOR_GRAY2BGR)
+            
+            if self.alignment_method == 'ecc':
+                aligned_bgr, _, _ = ecc_alignment(ref_bgr, frame_bgr, warp_mode=cv2.MOTION_EUCLIDEAN)
+            elif self.alignment_method == 'orb':
+                aligned_bgr, _ = orb_alignment(ref_bgr, frame_bgr, transform_type='similarity')
+            elif self.alignment_method == 'phase':
+                aligned_bgr, _, _ = phase_correlation_alignment(ref_bgr, frame_bgr)
+            elif self.alignment_method == 'optical_flow':
+                aligned_bgr, _ = optical_flow_alignment(ref_bgr, frame_bgr)
+            else:
+                aligned_bgr = frame_bgr
+            
+            # Convert back to grayscale
+            aligned = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2GRAY)
+            logger.debug(f"Frame aligned using {self.alignment_method}")
+            return aligned
+        except Exception as e:
+            logger.warning(f"Alignment failed: {e}, using original frame")
+            return frame_gray
+    
     def detect(self, frame_gray):
         """Detect anomalies using patch-based PatchCore"""
         if not self.initialized:
@@ -477,14 +541,13 @@ class PatchCoreDetector:
             logger.info("PATCHCORE DETECT - Starting (Patch-based)")
             logger.info(f"Input frame shape: {frame_gray.shape}, dtype: {frame_gray.dtype}")
             
-            # Extract patches from current frame
-            current_patches, current_positions = self.extract_patches(frame_gray)
-            logger.debug(f"Extracted {len(current_patches)} patches")
-            
             # Initialize memory bank with first frame
             if len(self.memory_bank) == 0:
                 logger.info("Building memory bank from reference frame...")
                 self.reference_frame = frame_gray.copy()
+                
+                # Extract patches from reference frame
+                current_patches, current_positions = self.extract_patches(frame_gray)
                 self.patch_positions = current_positions
                 
                 for i, patch in enumerate(current_patches):
@@ -496,6 +559,17 @@ class PatchCoreDetector:
                 
                 logger.info(f"Memory bank built: {len(self.memory_bank)} patch features")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
+            
+            # Align current frame to reference
+            if self.use_alignment:
+                logger.debug(f"Aligning frame using {self.alignment_method}...")
+                aligned_frame = self.align_frame(frame_gray)
+            else:
+                aligned_frame = frame_gray
+            
+            # Extract patches from aligned frame
+            current_patches, current_positions = self.extract_patches(aligned_frame)
+            logger.debug(f"Extracted {len(current_patches)} patches from aligned frame")
             
             # Compute anomaly score for each patch
             logger.debug("Computing patch-level anomaly scores...")
@@ -576,12 +650,16 @@ class PatchCoreDetector:
 class PatchCoreSAMDetector:
     """PatchCore + SAM anomaly detection on grayscale"""
     
-    def __init__(self, frame_height, frame_width):
+    def __init__(self, frame_height, frame_width, alignment_method='ecc'):
         self.reference_frame = None
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.initialized = False
         self.device = None
+        
+        # Alignment configuration
+        self.alignment_method = alignment_method
+        self.use_alignment = alignment_method != 'none'
         
         try:
             import torch
@@ -596,6 +674,7 @@ class PatchCoreSAMDetector:
             # Set device to GPU if available
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             print(f"   ✓ PatchCore+SAM initialized on {self.device}")
+            print(f"   ✓ Alignment method: {self.alignment_method}")
             
             # Force SAM to use GPU by setting torch default device
             if torch.cuda.is_available():
@@ -612,6 +691,31 @@ class PatchCoreSAMDetector:
         except Exception as e:
             print(f"   ✗ PatchCore+SAM initialization failed: {e}")
             self.initialized = False
+    
+    def align_frame(self, frame_bgr):
+        """Align current frame to reference using selected method"""
+        if not self.use_alignment or self.reference_frame is None:
+            return frame_bgr
+        
+        try:
+            from utils.alignment import ecc_alignment, orb_alignment, phase_correlation_alignment, optical_flow_alignment
+            
+            if self.alignment_method == 'ecc':
+                aligned_bgr, _, _ = ecc_alignment(self.reference_frame, frame_bgr, warp_mode=cv2.MOTION_EUCLIDEAN)
+            elif self.alignment_method == 'orb':
+                aligned_bgr, _ = orb_alignment(self.reference_frame, frame_bgr, transform_type='similarity')
+            elif self.alignment_method == 'phase':
+                aligned_bgr, _, _ = phase_correlation_alignment(self.reference_frame, frame_bgr)
+            elif self.alignment_method == 'optical_flow':
+                aligned_bgr, _ = optical_flow_alignment(self.reference_frame, frame_bgr)
+            else:
+                aligned_bgr = frame_bgr
+            
+            logger.debug(f"Frame aligned using {self.alignment_method}")
+            return aligned_bgr
+        except Exception as e:
+            logger.warning(f"Alignment failed: {e}, using original frame")
+            return frame_bgr
     
     def detect(self, frame_gray):
         """Detect anomalies using PatchCore + SAM"""
@@ -634,6 +738,12 @@ class PatchCoreSAMDetector:
                 self.reference_frame = frame_bgr.copy()
                 logger.debug(f"Reference frame stored: {self.reference_frame.shape}")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
+            
+            # Align current frame to reference
+            if self.use_alignment:
+                logger.debug(f"Aligning frame using {self.alignment_method}...")
+                frame_bgr = self.align_frame(frame_bgr)
+                logger.debug(f"Frame aligned: {frame_bgr.shape}")
             
             logger.debug(f"Reference frame shape: {self.reference_frame.shape}")
             
@@ -687,12 +797,23 @@ class PatchCoreSAMDetector:
 # ============================================================================
 
 class HybridDetector:
-    """Combine MOG2, PatchCore, and PatchCore+SAM"""
+    """Combine MOG2+PatchCore, PatchCore, and PatchCore+SAM"""
     
-    def __init__(self, frame_height, frame_width):
-        self.mog2 = MOG2Detector()
-        self.patchcore = PatchCoreDetector(frame_height, frame_width)
-        self.patchcore_sam = PatchCoreSAMDetector(frame_height, frame_width)
+    def __init__(self, frame_height, frame_width, alignment_method='ecc'):
+        logger.info("Initializing HybridDetector...")
+        
+        # MOG2 with PatchCore enhancement
+        self.mog2 = MOG2Detector(use_patchcore=True, frame_height=frame_height, frame_width=frame_width, alignment_method=alignment_method)
+        logger.info("   ✓ MOG2+PatchCore initialized")
+        
+        self.patchcore = PatchCoreDetector(frame_height, frame_width, alignment_method=alignment_method)
+        logger.info("   ✓ PatchCore initialized")
+        
+        self.patchcore_sam = PatchCoreSAMDetector(frame_height, frame_width, alignment_method=alignment_method)
+        logger.info("   ✓ PatchCore+SAM initialized")
+        
+        print(f"   ✓ Hybrid detector initialized with alignment: {alignment_method}")
+        print(f"   ✓ Combines: MOG2+PatchCore, PatchCore, PatchCore+SAM")
     
     def detect(self, frame_gray):
         """Detect using all three methods"""
@@ -901,18 +1022,26 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     # Initialize detectors
     print(f"\n🔧 Initializing {detection_method} detector...")
     
+    # Alignment method for PatchCore-based detectors
+    alignment_method = 'ecc'  # ECC is best for video frames
+    
     if detection_method == 'mog2':
-        detector = MOG2Detector()
-        method_name = "MOG2"
+        # Option to enable PatchCore enhancement for MOG2
+        use_patchcore_enhancement = False  # Set to True for MOG2+PatchCore
+        detector = MOG2Detector(use_patchcore=use_patchcore_enhancement, 
+                               frame_height=frame_height, 
+                               frame_width=frame_width,
+                               alignment_method=alignment_method)
+        method_name = "MOG2+PatchCore" if use_patchcore_enhancement else "MOG2"
     elif detection_method == 'patchcore':
-        detector = PatchCoreDetector(frame_height, frame_width)
-        method_name = "PatchCore"
+        detector = PatchCoreDetector(frame_height, frame_width, alignment_method=alignment_method)
+        method_name = "PatchCore (Patch-based with ECC alignment)"
     elif detection_method == 'patchcore_sam':
-        detector = PatchCoreSAMDetector(frame_height, frame_width)
-        method_name = "PatchCore+SAM"
+        detector = PatchCoreSAMDetector(frame_height, frame_width, alignment_method=alignment_method)
+        method_name = "PatchCore+SAM (with ECC alignment)"
     elif detection_method == 'hybrid':
-        detector = HybridDetector(frame_height, frame_width)
-        method_name = "Hybrid (MOG2+PatchCore+PatchCore+SAM)"
+        detector = HybridDetector(frame_height, frame_width, alignment_method=alignment_method)
+        method_name = "Hybrid (MOG2+PatchCore, PatchCore, PatchCore+SAM with ECC alignment)"
     else:
         detector = MOG2Detector()
         method_name = "MOG2"
