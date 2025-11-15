@@ -27,19 +27,45 @@ def get_sam_predictor():
         def load_sam():
             try:
                 import os
+                import torch
+                
                 # Check if checkpoint exists
                 if not os.path.exists(sam_checkpoint):
                     print(f"[SAM] Checkpoint not found: {sam_checkpoint}")
                     print(f"[SAM] Place the SAM checkpoint in: {os.path.abspath(sam_checkpoint)}")
                     return None
                 
+                # Check for CUDA - try multiple methods
+                print(f"[SAM] PyTorch version: {torch.__version__}")
+                print(f"[SAM] torch.cuda.is_available(): {torch.cuda.is_available()}")
+                print(f"[SAM] torch.cuda.device_count(): {torch.cuda.device_count()}")
+                
+                # Force CUDA if available
+                if torch.cuda.is_available():
+                    device = "cuda:0"
+                    torch.cuda.set_device(0)
+                    print(f"[SAM] GPU Device: {torch.cuda.get_device_name(0)}")
+                    print(f"[SAM] GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+                else:
+                    # Try using device 0 directly
+                    try:
+                        test_tensor = torch.zeros(1, device='cuda:0')
+                        device = "cuda:0"
+                        print(f"[SAM] CUDA device 0 is available!")
+                    except RuntimeError:
+                        device = "cpu"
+                        print(f"[SAM] ⚠️ CUDA not available, falling back to CPU")
+                
+                print(f"[SAM] Loading model on device: {device}")
                 sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-                device = "cuda" if cv2.cuda.getCudaEnabledDeviceCount() > 0 else "cpu"
-                print(f"[SAM] Using device: {device}")
                 sam.to(device=device)
+                
+                print(f"[SAM] ✓ Model loaded successfully on {device}")
                 return SamPredictor(sam)
             except Exception as e:
                 print(f"[SAM] Loading failed: {e}")
+                import traceback
+                traceback.print_exc()
                 return None
         
         # Load with timeout

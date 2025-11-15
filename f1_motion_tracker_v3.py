@@ -11,10 +11,42 @@ from collections import deque
 import tkinter as tk
 from tkinter import filedialog
 import gc
+from tqdm import tqdm
 
 print("🏎️ F1 DRIVER ONBOARD MOTION TRACKER V3.0")
 print("="*70)
 print("✅ Imports loaded")
+
+# Check and fix PyTorch CUDA if needed
+try:
+    import torch
+    if not torch.cuda.is_available():
+        print("\n⚠️ PyTorch CUDA not available!")
+        print("   Reinstalling PyTorch with CUDA support...")
+        import subprocess
+        import sys
+        
+        # Try to reinstall with CUDA
+        try:
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'install', '-q', '--upgrade',
+                'torch', 'torchvision', 'torchaudio',
+                '--index-url', 'https://download.pytorch.org/whl/cu118'
+            ], timeout=300)
+            
+            # Reimport torch
+            import importlib
+            importlib.reload(torch)
+            
+            if torch.cuda.is_available():
+                print("   ✅ PyTorch CUDA enabled after reinstall!")
+            else:
+                print("   ⚠️ CUDA still not available, continuing with CPU")
+        except Exception as e:
+            print(f"   ⚠️ Could not reinstall: {e}")
+            print("   Continuing with current PyTorch installation...")
+except Exception as e:
+    print(f"⚠️ PyTorch check failed: {e}")
 
 # ============================================================================
 # CONFIGURATION
@@ -388,8 +420,10 @@ class PatchCoreSAMDetector:
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.initialized = False
+        self.device = None
         
         try:
+            import torch
             from pipelines.anomaly_patchcore_sam import run_patchcore_sam_pipeline
             from utils.sam_refine import sam_refine
             from utils.rough_mask import generate_rough_mask
@@ -398,7 +432,21 @@ class PatchCoreSAMDetector:
             self.sam_refine = sam_refine
             self.generate_rough_mask = generate_rough_mask
             
-            print("   ✓ PatchCore+SAM initialized")
+            # Set device to GPU if available
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            print(f"   ✓ PatchCore+SAM initialized on {self.device}")
+            
+            # Force SAM to use GPU by setting torch default device
+            if torch.cuda.is_available():
+                torch.cuda.set_device(0)
+                print(f"   ✓ GPU allocated for SAM - CUDA enabled")
+                # Verify GPU is being used
+                if torch.cuda.is_available():
+                    print(f"   ✓ GPU Device: {torch.cuda.get_device_name(0)}")
+                    print(f"   ✓ GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            else:
+                print(f"   ⚠️ CUDA not available, using CPU")
+            
             self.initialized = True
         except Exception as e:
             print(f"   ✗ PatchCore+SAM initialization failed: {e}")
@@ -708,6 +756,9 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
     frame_count = 0
     processed_count = 0
     
+    # Create progress bar
+    pbar = tqdm(total=frames_to_process, desc="Processing frames", unit="frame", ncols=80)
+    
     try:
         while cap.isOpened() and processed_count < frames_to_process:
             ret, frame = cap.read()
@@ -778,28 +829,43 @@ def process_video_hybrid(input_video_path, output_video_path, detection_method):
                     print(f"\n⚠️ Preview not available (headless environment)")
                     CONFIG['show_preview'] = False
             
-            # Progress
+            # Update progress bar
             processed_count += 1
-            if processed_count % 30 == 0:
-                progress = (processed_count / frames_to_process) * 100
-                print(f"   Progress: {progress:.1f}% | Frame: {processed_count}/{frames_to_process}")
+            pbar.update(1)
+            pbar.set_postfix({"method": method_name})
             
             frame_count += 1
             
-            # Garbage collection
+            # Garbage collection and GPU cache clearing
             if processed_count % 100 == 0:
                 gc.collect()
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except:
+                    pass
     
     except KeyboardInterrupt:
         print("\n⏹️ Interrupted by user")
     
     finally:
+        pbar.close()
         cap.release()
         out.release()
         try:
             cv2.destroyAllWindows()
         except cv2.error:
             # GUI not available, skip cleanup
+            pass
+        
+        # Clear GPU cache if available
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                print("\n   ✓ GPU memory cleared")
+        except:
             pass
     
     print("\n" + "="*70)

@@ -30,15 +30,22 @@ def get_patchcore_model():
     return _patchcore_model
 
 
-def extract_patch_features(image):
+def extract_patch_features(image, reduce_size=False):
     """
     Extract patch-level features from intermediate layers
+    with optional dimensionality reduction for memory efficiency
     """
     model = get_patchcore_model()
     if model is None:
         return None
     
     device = next(model.parameters()).device
+    
+    # Downscale image if needed to reduce memory
+    if reduce_size:
+        h, w = image.shape[:2]
+        if h > 224 or w > 224:
+            image = cv2.resize(image, (224, 224))
     
     # Prepare image
     img_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
@@ -52,30 +59,45 @@ def extract_patch_features(image):
     features_list = []
     
     def hook_fn(module, input, output):
-        features_list.append(output)
+        # Immediately move to CPU to free GPU memory
+        features_list.append(output.detach().cpu())
     
-    # Register hooks for layer2 and layer3
+    # Register hooks for layer3 only (reduces memory vs layer2+layer3)
     handles = []
-    handles.append(model.layer2.register_forward_hook(hook_fn))
     handles.append(model.layer3.register_forward_hook(hook_fn))
     
-    with torch.no_grad():
-        _ = model(img_tensor)
+    try:
+        with torch.no_grad():
+            _ = model(img_tensor)
+        
+        # Remove hooks
+        for handle in handles:
+            handle.remove()
+        
+        if not features_list:
+            return None
+        
+        # Use single feature map instead of concatenating
+        feature_map = features_list[0]
+        
+        # Reduce spatial dimensions if needed
+        if feature_map.shape[2] > 32 or feature_map.shape[3] > 32:
+            feature_map = torch.nn.functional.adaptive_avg_pool2d(feature_map, (16, 16))
+        
+        # Convert to numpy on CPU
+        feature_map = feature_map.squeeze(0).numpy()
+        
+        # Clear GPU cache
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+        return feature_map
     
-    # Remove hooks
-    for handle in handles:
-        handle.remove()
-    
-    # Aggregate features
-    feature_map = torch.cat([
-        torch.nn.functional.interpolate(f, size=features_list[0].shape[2:], mode='bilinear', align_corners=False)
-        for f in features_list
-    ], dim=1)
-    
-    # Convert to numpy
-    feature_map = feature_map.squeeze(0).cpu().numpy()
-    
-    return feature_map
+    except RuntimeError as e:
+        print(f"Memory error during feature extraction: {e}")
+        for handle in handles:
+            handle.remove()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        return None
 
 
 def build_memory_bank(ref_features):
@@ -92,21 +114,31 @@ def build_memory_bank(ref_features):
 def compute_anomaly_map(test_features, memory_bank, k=3):
     """
     Compute anomaly score using k-nearest neighbors distance
+    with memory-efficient batch processing
     """
     C, H, W = test_features.shape
     test_flat = test_features.reshape(C, -1).T  # (H*W, C)
     
-    # Compute distances to memory bank
+    # Process in batches to avoid memory overload
+    batch_size = 256
     anomaly_scores = []
-    for test_vec in test_flat:
-        # L2 distance to all memory vectors
-        distances = np.linalg.norm(memory_bank - test_vec, axis=1)
+    
+    for i in range(0, len(test_flat), batch_size):
+        batch = test_flat[i:i+batch_size]
+        
+        # Compute distances to memory bank (batch-wise)
+        distances = np.linalg.norm(memory_bank[:, np.newaxis, :] - batch[np.newaxis, :, :], axis=2)
+        
         # Average of k nearest neighbors
-        knn_dist = np.partition(distances, k)[:k].mean()
-        anomaly_scores.append(knn_dist)
+        k_vals = min(k, len(memory_bank))
+        knn_dists = np.partition(distances, k_vals-1, axis=0)[:k_vals, :].mean(axis=0)
+        anomaly_scores.extend(knn_dists)
     
     # Reshape to spatial map
     anomaly_map = np.array(anomaly_scores).reshape(H, W)
+    
+    # Clear memory
+    del test_flat, distances
     
     return anomaly_map
 
@@ -142,7 +174,7 @@ def refine_anomaly_with_sam(test_img, anomaly_map, threshold=0.5):
 
 def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
     """
-    Complete PatchCore + SAM hybrid pipeline
+    Complete PatchCore + SAM hybrid pipeline with memory optimization
     
     Args:
         test_img: Test image (RGB)
@@ -163,53 +195,70 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
     """
     global _memory_bank
     
-    # Ensure all inputs have the same size
-    h, w = test_img.shape[:2]
-    if refined_mask is not None and refined_mask.shape[:2] != (h, w):
-        print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
-        refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
-    
-    # Extract features
-    if ref_img is not None and _memory_bank is None:
-        ref_features = extract_patch_features(ref_img)
-        if ref_features is not None:
-            _memory_bank = build_memory_bank(ref_features)
-    
-    test_features = extract_patch_features(test_img)
-    
-    if test_features is None or _memory_bank is None:
-        # Fallback to gradient-based anomaly detection
-        print("Warning: PatchCore unavailable, using gradient-based detection")
-        gray = cv2.cvtColor(test_img, cv2.COLOR_RGB2GRAY)
-        anomaly_map = cv2.Laplacian(gray, cv2.CV_64F)
-        anomaly_map = np.abs(anomaly_map)
-        anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
-        refined_mask_sam = None
-        rough_mask = None
-    else:
-        # Compute anomaly map using PatchCore
-        anomaly_map = compute_anomaly_map(test_features, _memory_bank)
+    try:
+        # Ensure all inputs have the same size
+        h, w = test_img.shape[:2]
+        if refined_mask is not None and refined_mask.shape[:2] != (h, w):
+            print(f"Warning: Size mismatch - resizing mask from {refined_mask.shape[:2]} to {(h, w)}")
+            refined_mask = cv2.resize(refined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
         
-        # Upsample anomaly map to match image size (feature map is smaller than image)
-        if anomaly_map.shape != (h, w):
-            anomaly_map = cv2.resize(anomaly_map, (w, h), interpolation=cv2.INTER_LINEAR)
+        # Extract features with memory optimization
+        if ref_img is not None and _memory_bank is None:
+            ref_features = extract_patch_features(ref_img, reduce_size=True)
+            if ref_features is not None:
+                _memory_bank = build_memory_bank(ref_features)
+                del ref_features  # Free memory
         
-        # Refine with SAM
-        refined_mask_sam, rough_mask, anomaly_map = refine_anomaly_with_sam(
-            test_img, 
-            anomaly_map, 
-            threshold=0.5
-        )
-    
-    # Normalize anomaly map to [0, 1]
-    if anomaly_map.max() > 1.0:
-        anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
-    
-    # Convert to 0-255 range
-    diff_map = (anomaly_map * 255).astype(np.uint8)
-    
-    # Create heatmap
-    heatmap = create_heatmap(diff_map, colormap='hot')
+        test_features = extract_patch_features(test_img, reduce_size=True)
+        
+        if test_features is None or _memory_bank is None:
+            # Fallback to gradient-based anomaly detection
+            print("Warning: PatchCore unavailable, using gradient-based detection")
+            gray = cv2.cvtColor(test_img, cv2.COLOR_RGB2GRAY)
+            anomaly_map = cv2.Laplacian(gray, cv2.CV_64F)
+            anomaly_map = np.abs(anomaly_map)
+            anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+            refined_mask_sam = None
+            rough_mask = None
+        else:
+            # Compute anomaly map using PatchCore
+            try:
+                anomaly_map = compute_anomaly_map(test_features, _memory_bank)
+            except Exception as e:
+                print(f"Error in anomaly map computation: {e}")
+                # Fallback
+                gray = cv2.cvtColor(test_img, cv2.COLOR_RGB2GRAY)
+                anomaly_map = cv2.Laplacian(gray, cv2.CV_64F)
+                anomaly_map = np.abs(anomaly_map)
+                anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+                refined_mask_sam = None
+                rough_mask = None
+            else:
+                # Upsample anomaly map to match image size (feature map is smaller than image)
+                if anomaly_map.shape != (h, w):
+                    anomaly_map = cv2.resize(anomaly_map, (w, h), interpolation=cv2.INTER_LINEAR)
+                
+                # Refine with SAM
+                try:
+                    refined_mask_sam, rough_mask, anomaly_map = refine_anomaly_with_sam(
+                        test_img, 
+                        anomaly_map, 
+                        threshold=0.5
+                    )
+                except Exception as e:
+                    print(f"SAM refinement failed: {e}")
+                    refined_mask_sam = None
+                    rough_mask = None
+        
+        # Normalize anomaly map to [0, 1]
+        if anomaly_map.max() > 1.0:
+            anomaly_map = (anomaly_map - anomaly_map.min()) / (anomaly_map.max() - anomaly_map.min() + 1e-10)
+        
+        # Convert to 0-255 range
+        diff_map = (anomaly_map * 255).astype(np.uint8)
+        
+        # Create heatmap
+        heatmap = create_heatmap(diff_map, colormap='hot')
     
     # Threshold to create binary mask
     _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
