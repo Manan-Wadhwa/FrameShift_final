@@ -158,6 +158,66 @@ def analyze_with_patchcore_sam(img_a, img_b, diff_map, use_preprocessing=True):
         return None
 
 
+def analyze_with_dinov3_patchcore_sam(img_a, img_b, use_preprocessing=True):
+    """Apply DINOv3 + PatchCore + SAM for static feature-based anomaly detection"""
+    try:
+        # Preprocess reference and test images
+        if use_preprocessing:
+            ref_proc, test_proc = preprocess(img_a, img_b)
+        else:
+            # Skip preprocessing - just resize to standard size
+            h, w = 336, 336
+            ref_proc = cv2.resize(img_a, (w, h))
+            test_proc = cv2.resize(img_b, (w, h))
+        
+        # Generate rough mask from difference
+        rough_mask, _ = generate_rough_mask(ref_proc, test_proc)
+        
+        # Refine with SAM
+        refined_mask = sam_refine(test_proc, rough_mask)
+        
+        # Import the DINOv3 pipeline
+        from pipelines.semantic_dinov3_patchcore_sam import run_dinov3_patchcore_sam_pipeline
+        
+        # Run DINOv3 + PatchCore + SAM pipeline on both images
+        result_a = run_dinov3_patchcore_sam_pipeline(ref_proc, test_proc, refined_mask)
+        result_b = run_dinov3_patchcore_sam_pipeline(test_proc, ref_proc, refined_mask)
+        
+        if result_a and result_b:
+            hm_a = result_a.get("heatmap")
+            hm_b = result_b.get("heatmap")
+            
+            if hm_a is not None and hm_b is not None:
+                # Ensure both heatmaps are same size
+                h, w = hm_a.shape[:2]
+                if hm_b.shape[:2] != (h, w):
+                    hm_b = cv2.resize(hm_b, (w, h))
+                
+                # Compute heatmap difference
+                hm_diff = cv2.absdiff(hm_a, hm_b)
+                hm_diff_gray = cv2.cvtColor(hm_diff, cv2.COLOR_RGB2GRAY)
+                
+                return {
+                    "result_a": result_a,
+                    "result_b": result_b,
+                    "heatmap_a": hm_a,
+                    "heatmap_b": hm_b,
+                    "heatmap_diff": hm_diff,
+                    "heatmap_diff_gray": hm_diff_gray,
+                    "refined_mask": refined_mask,
+                    "ref_proc": ref_proc,
+                    "test_proc": test_proc
+                }
+        
+        return None
+        
+    except Exception as e:
+        st.error(f"DINOv3 + PatchCore + SAM analysis failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def main():
     st.set_page_config(
         page_title="Image Differencing - PatchCore + SAM",
@@ -201,6 +261,14 @@ def main():
         # Options
         st.header("⚙️ Options")
         align_images = st.checkbox("Align images before comparison", value=True)
+        use_preprocessing = st.checkbox("Use preprocessing", value=True)
+        
+        # Pipeline selection
+        st.subheader("Pipeline")
+        pipeline_choice = st.radio("Choose analysis pipeline:", 
+            ["PatchCore + SAM", "DINOv3 + PatchCore + SAM"],
+            help="PatchCore+SAM: Anomaly detection | DINOv3+PatchCore+SAM: Static feature detection")
+        
         show_diff_maps = st.checkbox("Show difference maps", value=True)
         use_preprocessing = st.checkbox("Use preprocessing", value=True, help="Resize, denoise, gamma correction")
         
@@ -268,13 +336,19 @@ def main():
             
             st.markdown("---")
         
-        # Step 3: PatchCore + SAM Analysis
-        st.header("Step 3️⃣: PatchCore + SAM Heatmap Comparison")
+        # Step 3: Analysis
+        st.header("Step 3️⃣: Analysis")
         
-        with st.spinner("Running PatchCore + SAM on both images..."):
-            analysis_result = analyze_with_patchcore_sam(
-                ref_aligned, test_resized, diff_gray, use_preprocessing=use_preprocessing
-            )
+        with st.spinner(f"Running {pipeline_choice}..."):
+            if pipeline_choice == "DINOv3 + PatchCore + SAM":
+                from pipelines.semantic_dinov3_patchcore_sam import run_dinov3_patchcore_sam_pipeline
+                analysis_result = analyze_with_dinov3_patchcore_sam(
+                    ref_aligned, test_resized, use_preprocessing
+                )
+            else:
+                analysis_result = analyze_with_patchcore_sam(
+                    ref_aligned, test_resized, diff_gray, use_preprocessing=use_preprocessing
+                )
         
         if analysis_result is None:
             st.error("Analysis failed")
