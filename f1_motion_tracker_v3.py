@@ -334,10 +334,14 @@ class PatchCoreDetector:
     
     def __init__(self, frame_height, frame_width):
         self.reference_frame = None
-        self.reference_features = None
         self.frame_height = frame_height
         self.frame_width = frame_width
-        self.patch_size = 16
+        
+        # Patch configuration
+        self.patch_size = 64  # Size of each patch (64x64)
+        self.stride = 32      # Stride for overlapping patches
+        self.memory_bank = []  # Store reference patch features
+        self.patch_positions = []  # Store patch positions for mapping
         
         try:
             from torchvision import models
@@ -355,10 +359,57 @@ class PatchCoreDetector:
             self.feature_extractor = torch.nn.Sequential(*list(self.model.children())[:-1])
             
             print(f"   ✓ PatchCore initialized on {self.device}")
+            print(f"   ✓ Patch size: {self.patch_size}x{self.patch_size}, stride: {self.stride}")
             self.initialized = True
         except Exception as e:
             print(f"   ✗ PatchCore initialization failed: {e}")
             self.initialized = False
+    
+    def extract_patches(self, frame_gray):
+        """Extract overlapping patches from frame"""
+        patches = []
+        positions = []
+        
+        h, w = frame_gray.shape
+        
+        # Slide window across image
+        for y in range(0, h - self.patch_size + 1, self.stride):
+            for x in range(0, w - self.patch_size + 1, self.stride):
+                patch = frame_gray[y:y+self.patch_size, x:x+self.patch_size]
+                patches.append(patch)
+                positions.append((y, x))
+        
+        logger.debug(f"Extracted {len(patches)} patches from {h}x{w} frame")
+        return patches, positions
+    
+    def extract_patch_features(self, patch):
+        """Extract features from a single patch"""
+        try:
+            # Convert patch to RGB
+            patch_rgb = cv2.cvtColor(patch, cv2.COLOR_GRAY2BGR)
+            
+            # Resize to model input size
+            patch_resized = cv2.resize(patch_rgb, (224, 224))
+            
+            # Normalize
+            patch_normalized = patch_resized.astype(np.float32) / 255.0
+            patch_normalized = (patch_normalized - 0.5) / 0.5
+            
+            # Convert to tensor
+            patch_tensor = self.torch.from_numpy(patch_normalized).permute(2, 0, 1).unsqueeze(0)
+            patch_tensor = patch_tensor.to(self.device)
+            
+            # Extract features
+            with self.torch.no_grad():
+                features = self.feature_extractor(patch_tensor)
+            
+            # Flatten to 1D feature vector
+            features_flat = features.cpu().numpy().flatten()
+            
+            return features_flat
+        except Exception as e:
+            logger.error(f"Patch feature extraction failed: {e}")
+            return None
     
     def extract_features(self, frame_gray):
         """Extract features from grayscale frame"""
@@ -416,58 +467,95 @@ class PatchCoreDetector:
             return None
     
     def detect(self, frame_gray):
-        """Detect anomalies using PatchCore"""
+        """Detect anomalies using patch-based PatchCore"""
         if not self.initialized:
             logger.warning("PatchCore not initialized, returning zero mask")
             return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
         
         try:
             logger.info("="*60)
-            logger.info("PATCHCORE DETECT - Starting")
+            logger.info("PATCHCORE DETECT - Starting (Patch-based)")
             logger.info(f"Input frame shape: {frame_gray.shape}, dtype: {frame_gray.dtype}")
             
-            current_features = self.extract_features(frame_gray)
+            # Extract patches from current frame
+            current_patches, current_positions = self.extract_patches(frame_gray)
+            logger.debug(f"Extracted {len(current_patches)} patches")
             
-            if current_features is None:
-                logger.error("Feature extraction returned None")
-                return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
-            
-            logger.debug(f"Current features shape: {current_features.shape}")
-            
-            # Initialize reference on first frame
-            if self.reference_features is None:
-                logger.info("Initializing reference frame (first frame)")
+            # Initialize memory bank with first frame
+            if len(self.memory_bank) == 0:
+                logger.info("Building memory bank from reference frame...")
                 self.reference_frame = frame_gray.copy()
-                self.reference_features = current_features
-                logger.debug(f"Reference features stored: {self.reference_features.shape}")
+                self.patch_positions = current_positions
+                
+                for i, patch in enumerate(current_patches):
+                    if i % 100 == 0:
+                        logger.debug(f"Processing patch {i}/{len(current_patches)}")
+                    features = self.extract_patch_features(patch)
+                    if features is not None:
+                        self.memory_bank.append(features)
+                
+                logger.info(f"Memory bank built: {len(self.memory_bank)} patch features")
                 return np.zeros((frame_gray.shape[0], frame_gray.shape[1]), dtype=np.uint8)
             
-            logger.debug(f"Reference features shape: {self.reference_features.shape}")
+            # Compute anomaly score for each patch
+            logger.debug("Computing patch-level anomaly scores...")
+            anomaly_scores = []
             
-            # Compute feature distance
-            logger.debug("Computing L2 distance between features...")
+            for i, patch in enumerate(current_patches):
+                # Extract features for current patch
+                patch_features = self.extract_patch_features(patch)
+                if patch_features is None:
+                    anomaly_scores.append(0)
+                    continue
+                
+                # Find distance to nearest neighbor in memory bank
+                if len(self.memory_bank) > 0:
+                    min_distance = float('inf')
+                    for ref_features in self.memory_bank:
+                        distance = np.linalg.norm(patch_features - ref_features)
+                        min_distance = min(min_distance, distance)
+                    anomaly_scores.append(min_distance)
+                else:
+                    anomaly_scores.append(0)
             
-            # Flatten features for distance computation
-            current_flat = current_features.flatten()
-            reference_flat = self.reference_features.flatten()
-            logger.debug(f"Flattened shapes - current: {current_flat.shape}, reference: {reference_flat.shape}")
+            logger.debug(f"Computed {len(anomaly_scores)} anomaly scores")
+            logger.debug(f"Score stats - min: {min(anomaly_scores):.2f}, max: {max(anomaly_scores):.2f}, mean: {np.mean(anomaly_scores):.2f}")
             
-            feature_distance = np.linalg.norm(
-                current_flat - reference_flat,
-                ord=2
-            )
-            logger.debug(f"Feature distance: {feature_distance:.4f}")
+            # Create spatial anomaly map
+            anomaly_map = np.zeros(frame_gray.shape, dtype=np.float32)
+            count_map = np.zeros(frame_gray.shape, dtype=np.int32)
+            
+            # Map patch scores back to image coordinates
+            for (y, x), score in zip(current_positions, anomaly_scores):
+                anomaly_map[y:y+self.patch_size, x:x+self.patch_size] += score
+                count_map[y:y+self.patch_size, x:x+self.patch_size] += 1
+            
+            # Average overlapping regions
+            mask = count_map > 0
+            anomaly_map[mask] = anomaly_map[mask] / count_map[mask]
             
             # Normalize to 0-255
-            anomaly_score = min(255, int(feature_distance * 10))
-            logger.debug(f"Anomaly score (0-255): {anomaly_score}")
+            if anomaly_map.max() > 0:
+                anomaly_map = (anomaly_map / anomaly_map.max() * 255).astype(np.uint8)
+            else:
+                anomaly_map = anomaly_map.astype(np.uint8)
             
-            # Create heatmap
-            anomaly_map = np.ones_like(frame_gray) * anomaly_score
-            logger.debug(f"Anomaly map created: shape={anomaly_map.shape}, value={anomaly_score}")
+            logger.debug(f"Anomaly map - min: {anomaly_map.min()}, max: {anomaly_map.max()}, mean: {anomaly_map.mean():.2f}")
             
-            # Threshold
-            _, binary_map = cv2.threshold(anomaly_map, 30, 255, cv2.THRESH_BINARY)
+            # Apply adaptive threshold
+            mean_score = anomaly_map[anomaly_map > 0].mean() if np.any(anomaly_map > 0) else 0
+            std_score = anomaly_map[anomaly_map > 0].std() if np.any(anomaly_map > 0) else 0
+            threshold_value = max(10, min(150, mean_score + 2.0 * std_score))
+            logger.debug(f"Adaptive threshold: {threshold_value:.2f} (mean: {mean_score:.2f}, std: {std_score:.2f})")
+            
+            # Create binary mask
+            _, binary_map = cv2.threshold(anomaly_map, threshold_value, 255, cv2.THRESH_BINARY)
+            
+            # Apply morphological operations to reduce noise
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            binary_map = cv2.morphologyEx(binary_map, cv2.MORPH_OPEN, kernel)
+            binary_map = cv2.morphologyEx(binary_map, cv2.MORPH_CLOSE, kernel)
+            
             logger.debug(f"Binary map: non-zero pixels={np.count_nonzero(binary_map)}")
             logger.info("PATCHCORE DETECT - Complete")
             logger.info("="*60)
