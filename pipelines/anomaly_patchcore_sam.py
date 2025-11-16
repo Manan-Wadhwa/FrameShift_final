@@ -292,3 +292,9 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
             "rough_mask": rough_mask if rough_mask is not None else mask_binary,
             "refined_mask_sam": refined_mask_sam
         }
+    
+    except Exception as e:
+        print(f"Error in PatchCore+SAM pipeline: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
