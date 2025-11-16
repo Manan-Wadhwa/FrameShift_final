@@ -11,6 +11,13 @@ import sys
 import gc
 from pathlib import Path
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, use system env vars
+
 # Add parent directory to path to import main_pipeline
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main_pipeline import run_all_pipelines
