@@ -14,6 +14,10 @@ from pathlib import Path
 # Add parent directory to path to import main_pipeline
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main_pipeline import run_all_pipelines
+from utils.heatmap_metrics import HeatmapMetrics
+from utils.gemini_analyzer import GeminiAnalyzer
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Configure Streamlit for memory efficiency
 st.set_page_config(
@@ -25,8 +29,150 @@ st.set_page_config(
 )
 
 
-def display_pipeline_result(pipeline_name, result, col):
-    """Display results for a single pipeline in a column"""
+def display_comprehensive_metrics(metrics, ai_analysis=None):
+    """Display comprehensive metrics in Streamlit with charts and visualizations"""
+    
+    st.subheader("📊 Comprehensive Metrics Dashboard")
+    
+    # Key Metrics Row
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Anomaly Coverage", f"{metrics['anomaly_percentage']:.2f}%")
+    with col2:
+        st.metric("Affected Pixels", f"{metrics['total_anomaly_pixels']:,}")
+    with col3:
+        st.metric("Detected Regions", f"{metrics['num_regions']}")
+    with col4:
+        st.metric("Max Intensity", f"{metrics['max_anomaly_score']:.2f}")
+    
+    # Severity Distribution Chart
+    st.markdown("### ⚠️ Severity Distribution")
+    severity_data = {
+        'Level': ['Low', 'Medium', 'High'],
+        'Pixels': [
+            metrics['low_severity_pixels'],
+            metrics['medium_severity_pixels'],
+            metrics['high_severity_pixels']
+        ],
+        'Color': ['#28a745', '#ffc107', '#dc3545']
+    }
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=severity_data['Level'],
+            y=severity_data['Pixels'],
+            marker_color=severity_data['Color'],
+            text=[f"{p:,}" for p in severity_data['Pixels']],
+            textposition='outside'
+        )
+    ])
+    fig.update_layout(
+        title="Pixel Count by Severity Level",
+        xaxis_title="Severity",
+        yaxis_title="Pixels",
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Spatial Distribution Heatmap
+    st.markdown("### 🗺️ Spatial Distribution (3x3 Grid)")
+    spatial_dist = metrics.get('spatial_distribution', {})
+    if spatial_dist:
+        grid_data = np.zeros((3, 3))
+        for i in range(3):
+            for j in range(3):
+                key = f'cell_{i}_{j}'
+                grid_data[i, j] = spatial_dist.get(key, 0) * 100
+        
+        fig = go.Figure(data=go.Heatmap(
+            z=grid_data,
+            text=[[f'{val:.1f}%' for val in row] for row in grid_data],
+            texttemplate='%{text}',
+            textfont={"size": 16},
+            colorscale='Reds',
+            showscale=True
+        ))
+        fig.update_layout(
+            title="Anomaly Density Across Image Regions",
+            height=400,
+            xaxis={'title': 'Column', 'tickvals': [0, 1, 2]},
+            yaxis={'title': 'Row', 'tickvals': [0, 1, 2]}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Top Regions Table
+    st.markdown("### 🎯 Top Anomaly Regions")
+    regions = metrics.get('regions', [])
+    if regions:
+        sorted_regions = sorted(regions, key=lambda r: r['area'], reverse=True)[:10]
+        region_data = []
+        for i, region in enumerate(sorted_regions, 1):
+            x, y, w, h = region['bbox']
+            region_data.append({
+                'Rank': i,
+                'Area (px)': f"{region['area']:,}",
+                'Bounding Box': f"({x}, {y}, {w}, {h})",
+                'Max Intensity': f"{region['max_intensity']:.3f}",
+                'Mean Intensity': f"{region['mean_intensity']:.3f}"
+            })
+        
+        import pandas as pd
+        df = pd.DataFrame(region_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Coverage Comparison
+    st.markdown("### 🔄 Coverage Comparison")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("A → B Coverage", f"{metrics.get('coverage_a_to_b', 0):.2f}%")
+    with col2:
+        st.metric("B → A Coverage", f"{metrics.get('coverage_b_to_a', 0):.2f}%")
+    with col3:
+        st.metric("Coverage Difference", f"{metrics.get('coverage_difference', 0):.2f}%")
+    
+    # AI Analysis Section
+    if ai_analysis:
+        st.markdown("---")
+        st.markdown("### 🤖 AI-Powered Structural Analysis")
+        
+        # Summary
+        st.info(f"**Summary:** {ai_analysis.get('summary', 'No summary available')}")
+        
+        # Structural Issues
+        issues = ai_analysis.get('structural_issues', [])
+        if issues:
+            st.markdown(f"#### ⚠️ Detected {len(issues)} Structural Issue(s)")
+            
+            for i, issue in enumerate(issues, 1):
+                severity = issue.get('severity', 'low').lower()
+                
+                # Color-code by severity
+                if severity == 'critical' or severity == 'high':
+                    color = '🔴'
+                elif severity == 'medium':
+                    color = '🟡'
+                else:
+                    color = '🟢'
+                
+                with st.expander(f"{color} Issue {i}: {issue.get('component', 'Unknown Component')} - {severity.upper()}"):
+                    st.markdown(f"**Issue Type:** {issue.get('issue_type', 'Unknown')}")
+                    st.markdown(f"**Location:** {issue.get('location', 'Not specified')}")
+                    st.markdown(f"**Description:** {issue.get('description', 'No description')}")
+                    st.markdown(f"**Safety Impact:** {issue.get('safety_impact', 'Unknown')}")
+                    st.markdown(f"**Recommendation:** {issue.get('recommendation', 'No recommendation')}")
+        else:
+            st.success("✓ No significant structural issues detected.")
+        
+        # Critical Actions
+        actions = ai_analysis.get('critical_actions', [])
+        if actions:
+            st.markdown("#### 🔧 Critical Actions Required")
+            for action in actions:
+                st.warning(f"• {action}")
+
+
+def display_pipeline_result(pipeline_name, result, col, image_a=None, image_b=None, use_gemini=False):
+    """Display results for a single pipeline in a column with comprehensive reporting"""
     if result is None:
         with col:
             st.warning(f"⚠️ {pipeline_name} result not available")
@@ -70,6 +216,41 @@ def display_pipeline_result(pipeline_name, result, col):
             # Display metrics
             if "severity" in result and result["severity"] is not None:
                 st.metric("Severity Score", f"{result['severity']:.3f}")
+            
+            # Generate comprehensive metrics if heatmaps available
+            if pipeline_name == "PatchCore + SAM" and image_a is not None and image_b is not None:
+                if st.button(f"📊 Show Comprehensive Report", key=f"report_{pipeline_name}"):
+                    with st.spinner("Computing comprehensive metrics..."):
+                        # Get heatmaps
+                        heatmap_a2b = result.get('heatmap_a2b') or result.get('diff_map')
+                        heatmap_b2a = result.get('heatmap_b2a') or result.get('diff_map')
+                        
+                        if heatmap_a2b is not None and heatmap_b2a is not None:
+                            # Compute metrics
+                            metrics = HeatmapMetrics.compute_comprehensive_metrics(
+                                heatmap_a2b,
+                                heatmap_b2a,
+                                image_a,
+                                image_b
+                            )
+                            
+                            # AI Analysis if enabled
+                            ai_analysis = None
+                            if use_gemini:
+                                try:
+                                    gemini = GeminiAnalyzer()
+                                    union_colored = cv2.applyColorMap(
+                                        metrics['union_heatmap'].astype(np.uint8),
+                                        cv2.COLORMAP_JET
+                                    )
+                                    ai_analysis = gemini.analyze_heatmaps(
+                                        image_a, image_b, union_colored, metrics
+                                    )
+                                except Exception as e:
+                                    st.warning(f"⚠️ AI analysis failed: {e}")
+                            
+                            # Display comprehensive metrics
+                            display_comprehensive_metrics(metrics, ai_analysis)
             
             # Display report (with expander to save space)
             st.markdown("**Analysis Report**")
@@ -162,6 +343,20 @@ def render_multi_pipeline():
         
         st.markdown("---")
         
+        # AI Analysis Option
+        st.header("🤖 AI Analysis")
+        use_gemini = st.checkbox("Enable Gemini AI Analysis", value=False, key="gemini_check",
+                                 help="Requires GEMINI_API_KEY environment variable")
+        
+        if use_gemini:
+            api_key = os.getenv('GEMINI_API_KEY')
+            if api_key:
+                st.success("✓ Gemini API key detected")
+            else:
+                st.warning("⚠️ GEMINI_API_KEY not set. AI analysis will be skipped.")
+        
+        st.markdown("---")
+        
         # Run button
         run_button = st.button("🚀 Run Analysis", type="primary", width='stretch')
     
@@ -184,6 +379,12 @@ def render_multi_pipeline():
         # Display input images
         st.header("📷 Input Images")
         col1, col2 = st.columns(2)
+        
+        # Load images as numpy arrays for metrics
+        img_a_cv = cv2.imread(ref_path)
+        img_a_rgb = cv2.cvtColor(img_a_cv, cv2.COLOR_BGR2RGB) if img_a_cv is not None else None
+        img_b_cv = cv2.imread(test_path)
+        img_b_rgb = cv2.cvtColor(img_b_cv, cv2.COLOR_BGR2RGB) if img_b_cv is not None else None
         
         with col1:
             st.subheader("Reference Image (A)")
@@ -313,11 +514,11 @@ def render_multi_pipeline():
                 col1, col2 = st.columns(len(semantic_cols)) if len(semantic_cols) == 2 else (st.columns(1)[0], None)
                 for idx, (pipeline_name, result) in enumerate(semantic_cols):
                     if len(semantic_cols) == 2 and idx == 0:
-                        display_pipeline_result(pipeline_name, result, col1)
+                        display_pipeline_result(pipeline_name, result, col1, img_a_rgb, img_b_rgb, use_gemini)
                     elif len(semantic_cols) == 2 and idx == 1:
-                        display_pipeline_result(pipeline_name, result, col2)
+                        display_pipeline_result(pipeline_name, result, col2, img_a_rgb, img_b_rgb, use_gemini)
                     elif len(semantic_cols) == 1:
-                        display_pipeline_result(pipeline_name, result, col1 if idx == 0 else col2)
+                        display_pipeline_result(pipeline_name, result, col1 if idx == 0 else col2, img_a_rgb, img_b_rgb, use_gemini)
             
             st.markdown("---")
         
@@ -334,11 +535,11 @@ def render_multi_pipeline():
                 col1, col2 = st.columns(len(anomaly_cols)) if len(anomaly_cols) == 2 else (st.columns(1)[0], None)
                 for idx, (pipeline_name, result) in enumerate(anomaly_cols):
                     if len(anomaly_cols) == 2 and idx == 0:
-                        display_pipeline_result(pipeline_name, result, col1)
+                        display_pipeline_result(pipeline_name, result, col1, img_a_rgb, img_b_rgb, use_gemini)
                     elif len(anomaly_cols) == 2 and idx == 1:
-                        display_pipeline_result(pipeline_name, result, col2)
+                        display_pipeline_result(pipeline_name, result, col2, img_a_rgb, img_b_rgb, use_gemini)
                     elif len(anomaly_cols) == 1:
-                        display_pipeline_result(pipeline_name, result, col1 if idx == 0 else col2)
+                        display_pipeline_result(pipeline_name, result, col1 if idx == 0 else col2, img_a_rgb, img_b_rgb, use_gemini)
             
             st.markdown("---")
         
@@ -347,7 +548,7 @@ def render_multi_pipeline():
             st.subheader("🔬 Hybrid Pipeline (PatchCore + SAM)")
             if "patchcore_sam" in output["results"] and output["results"]["patchcore_sam"] is not None:
                 col1 = st.columns(1)[0]
-                display_pipeline_result("PatchCore + SAM", output["results"]["patchcore_sam"], col1)
+                display_pipeline_result("PatchCore + SAM", output["results"]["patchcore_sam"], col1, img_a_rgb, img_b_rgb, use_gemini)
             else:
                 st.warning("⚠️ PatchCore + SAM pipeline result not available")
             
@@ -358,7 +559,7 @@ def render_multi_pipeline():
             st.subheader("🚀 Advanced Pipeline (PatchCore KNN - FrameShift v3.0)")
             if "patchcore_knn" in output["results"] and output["results"]["patchcore_knn"] is not None:
                 col1 = st.columns(1)[0]
-                display_pipeline_result("PatchCore KNN (DINOv2 + KNN)", output["results"]["patchcore_knn"], col1)
+                display_pipeline_result("PatchCore KNN (DINOv2 + KNN)", output["results"]["patchcore_knn"], col1, img_a_rgb, img_b_rgb, use_gemini)
             else:
                 st.warning("⚠️ PatchCore KNN pipeline result not available")
             

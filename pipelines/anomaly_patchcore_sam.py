@@ -1,12 +1,18 @@
 """
 HYBRID ANOMALY PIPELINE: PatchCore + SAM Fusion
 Combines PatchCore feature-based anomaly detection with SAM segmentation refinement
+with comprehensive reporting via Gemini AI
 """
 import torch
 import cv2
 import numpy as np
+import os
+from pathlib import Path
 from utils.visualization import create_heatmap, create_overlay
 from utils.sam_refine import sam_refine
+from utils.heatmap_metrics import HeatmapMetrics
+from utils.basic_report import BasicReportGenerator
+from utils.gemini_analyzer import GeminiAnalyzer
 
 
 # Global PatchCore components
@@ -172,14 +178,24 @@ def refine_anomaly_with_sam(test_img, anomaly_map, threshold=0.5):
     return refined_mask, rough_anomaly_mask, anomaly_map_norm
 
 
-def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
+def run_patchcore_sam_pipeline(
+    test_img, 
+    refined_mask=None, 
+    ref_img=None,
+    generate_reports=False,
+    output_dir=None,
+    use_gemini=False
+):
     """
-    Complete PatchCore + SAM hybrid pipeline with memory optimization
+    Complete PatchCore + SAM hybrid pipeline with memory optimization and comprehensive reporting
     
     Args:
         test_img: Test image (RGB)
         refined_mask: Mask from preprocessing (optional, for reference)
         ref_img: Reference image (RGB, for building memory bank)
+        generate_reports: Whether to generate comprehensive reports
+        output_dir: Directory to save reports (required if generate_reports=True)
+        use_gemini: Whether to use Gemini AI for structural analysis
     
     Returns:
     {
@@ -190,7 +206,11 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
         "severity": anomaly severity score,
         "diff_map": raw anomaly map,
         "rough_mask": rough anomaly mask before SAM,
-        "refined_mask_sam": mask refined by SAM
+        "refined_mask_sam": mask refined by SAM,
+        "heatmap_a2b": heatmap from A to B (if ref_img provided),
+        "heatmap_b2a": heatmap from B to A (if ref_img provided),
+        "metrics": comprehensive metrics dict (if generate_reports=True),
+        "reports": dict of report paths (if generate_reports=True)
     }
     """
     global _memory_bank
@@ -282,7 +302,8 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
         # Create overlay
         overlay = create_overlay(test_img, mask_final, heatmap, alpha=0.4)
         
-        return {
+        # Initialize result dictionary
+        result = {
             "heatmap": heatmap,
             "mask_final": mask_final,
             "overlay": overlay,
@@ -292,6 +313,152 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
             "rough_mask": rough_mask if rough_mask is not None else mask_binary,
             "refined_mask_sam": refined_mask_sam
         }
+        
+        # Generate bidirectional heatmaps if reference image provided
+        heatmap_a2b = None
+        heatmap_b2a = None
+        
+        if ref_img is not None and generate_reports:
+            print("🔄 Computing bidirectional anomaly heatmaps...")
+            
+            # A→B (ref→test) - already computed above
+            heatmap_a2b = diff_map
+            
+            # B→A (test→ref) - reverse comparison
+            try:
+                # Build memory bank from test image
+                test_features_for_bank = extract_patch_features(test_img, reduce_size=True)
+                if test_features_for_bank is not None:
+                    temp_memory_bank = build_memory_bank(test_features_for_bank)
+                    
+                    # Extract reference image features
+                    ref_features_test = extract_patch_features(ref_img, reduce_size=True)
+                    if ref_features_test is not None:
+                        # Compute anomaly map (ref using test as baseline)
+                        anomaly_map_b2a = compute_anomaly_map(ref_features_test, temp_memory_bank)
+                        
+                        # Resize to match image
+                        if anomaly_map_b2a.shape != (h, w):
+                            anomaly_map_b2a = cv2.resize(anomaly_map_b2a, (w, h), interpolation=cv2.INTER_LINEAR)
+                        
+                        # Normalize
+                        anomaly_map_b2a = (anomaly_map_b2a - anomaly_map_b2a.min()) / (anomaly_map_b2a.max() - anomaly_map_b2a.min() + 1e-10)
+                        heatmap_b2a = (anomaly_map_b2a * 255).astype(np.uint8)
+                        
+                        del temp_memory_bank, test_features_for_bank, ref_features_test
+                    
+                print("✓ Bidirectional heatmaps computed")
+            except Exception as e:
+                print(f"Warning: B→A heatmap computation failed: {e}")
+                heatmap_b2a = heatmap_a2b.copy()  # Fallback to same heatmap
+            
+            result["heatmap_a2b"] = heatmap_a2b
+            result["heatmap_b2a"] = heatmap_b2a if heatmap_b2a is not None else heatmap_a2b
+        
+        # Generate comprehensive reports if requested
+        if generate_reports and output_dir is not None:
+            print("\n" + "="*80)
+            print("📋 GENERATING COMPREHENSIVE REPORTS")
+            print("="*80)
+            
+            output_dir = Path(output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Use bidirectional heatmaps if available, otherwise use same heatmap
+            if heatmap_a2b is None:
+                heatmap_a2b = diff_map
+                heatmap_b2a = diff_map
+            elif heatmap_b2a is None:
+                heatmap_b2a = heatmap_a2b
+            
+            # Compute comprehensive metrics
+            metrics = HeatmapMetrics.compute_comprehensive_metrics(
+                heatmap_a2b,
+                heatmap_b2a,
+                ref_img if ref_img is not None else test_img,
+                test_img
+            )
+            
+            result["metrics"] = metrics
+            
+            # Save metrics visualization
+            metrics_viz_path = output_dir / "metrics_visualization.jpg"
+            HeatmapMetrics.visualize_metrics(
+                metrics,
+                ref_img if ref_img is not None else test_img,
+                test_img,
+                str(metrics_viz_path)
+            )
+            
+            # Generate basic reports
+            print("\n📊 Generating basic metrics reports...")
+            
+            basic_json_path = output_dir / "basic_metrics.json"
+            BasicReportGenerator.generate_json_report(metrics, str(basic_json_path))
+            
+            basic_text_path = output_dir / "basic_metrics.txt"
+            BasicReportGenerator.generate_text_report(metrics, str(basic_text_path))
+            
+            basic_html_path = output_dir / "basic_metrics.html"
+            BasicReportGenerator.generate_html_report(metrics, str(basic_html_path))
+            
+            report_paths = {
+                "metrics_visualization": str(metrics_viz_path),
+                "basic_json": str(basic_json_path),
+                "basic_text": str(basic_text_path),
+                "basic_html": str(basic_html_path)
+            }
+            
+            # Generate AI-powered report with Gemini if requested
+            if use_gemini:
+                print("\n🤖 Generating AI-powered structural analysis with Gemini...")
+                try:
+                    # Initialize Gemini analyzer
+                    gemini = GeminiAnalyzer()
+                    
+                    # Get union heatmap visualization (colored)
+                    union_heatmap_colored = cv2.applyColorMap(
+                        (metrics['union_heatmap']).astype(np.uint8),
+                        cv2.COLORMAP_JET
+                    )
+                    
+                    # Analyze with Gemini
+                    ai_analysis = gemini.analyze_heatmaps(
+                        ref_img if ref_img is not None else test_img,
+                        test_img,
+                        union_heatmap_colored,
+                        metrics
+                    )
+                    
+                    # Generate AI-enhanced HTML report
+                    ai_report_path = output_dir / "ai_analysis_report.html"
+                    gemini.generate_report(metrics, ai_analysis, str(ai_report_path))
+                    
+                    report_paths["ai_analysis"] = str(ai_report_path)
+                    result["ai_analysis"] = ai_analysis
+                    
+                    print("✓ AI analysis report generated")
+                    
+                except ImportError:
+                    print("⚠️  google-generativeai not installed. Install with: pip install google-generativeai")
+                except ValueError as e:
+                    print(f"⚠️  Gemini API error: {e}")
+                    print("   Set GEMINI_API_KEY environment variable to use AI analysis")
+                except Exception as e:
+                    print(f"⚠️  AI analysis failed: {e}")
+            
+            result["reports"] = report_paths
+            
+            print("\n" + "="*80)
+            print("✅ REPORTS GENERATED SUCCESSFULLY")
+            print("="*80)
+            print(f"📁 Output directory: {output_dir}")
+            print(f"📊 Basic reports: JSON, TXT, HTML")
+            if use_gemini and "ai_analysis" in report_paths:
+                print(f"🤖 AI analysis: {report_paths['ai_analysis']}")
+            print("="*80 + "\n")
+        
+        return result
     
     except Exception as e:
         print(f"Error in PatchCore+SAM pipeline: {e}")
