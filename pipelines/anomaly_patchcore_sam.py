@@ -259,36 +259,36 @@ def run_patchcore_sam_pipeline(test_img, refined_mask=None, ref_img=None):
         
         # Create heatmap
         heatmap = create_heatmap(diff_map, colormap='hot')
-    
-    # Threshold to create binary mask
-    _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # Use SAM-refined mask if available, otherwise use binary mask
-    if refined_mask_sam is not None:
-        mask_final = refined_mask_sam
-    else:
-        mask_final = mask_binary
-    
-    # Ensure mask_final matches refined_mask if provided
-    if refined_mask is not None and mask_final.shape[:2] != refined_mask.shape[:2]:
-        mask_final = cv2.resize(mask_final, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
-        # Combine with preprocessing refined mask
-        mask_final = cv2.bitwise_and(mask_final, refined_mask)
-    
-    # Compute severity
-    mask_region = (mask_final > 0).astype(np.uint8)
-    severity = float(anomaly_map[mask_region > 0].mean()) if mask_region.sum() > 0 else 0.0
-    
-    # Create overlay
-    overlay = create_overlay(test_img, mask_final, heatmap, alpha=0.4)
-    
-    return {
-        "heatmap": heatmap,
-        "mask_final": mask_final,
-        "overlay": overlay,
-        "summary": "anomaly_hybrid",
-        "severity": severity,
-        "diff_map": diff_map,
-        "rough_mask": rough_mask if rough_mask is not None else mask_binary,
-        "refined_mask_sam": refined_mask_sam
-    }
+        
+        # Threshold to create binary mask
+        _, mask_binary = cv2.threshold(diff_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
+        # Use SAM-refined mask if available, otherwise use binary mask
+        if refined_mask_sam is not None:
+            mask_final = refined_mask_sam
+        else:
+            mask_final = mask_binary
+        
+        # Ensure mask_final matches refined_mask if provided
+        if refined_mask is not None and mask_final.shape[:2] != refined_mask.shape[:2]:
+            mask_final = cv2.resize(mask_final, (refined_mask.shape[1], refined_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
+            # Combine with preprocessing refined mask
+            mask_final = cv2.bitwise_and(mask_final, refined_mask)
+        
+        # Compute severity
+        mask_region = (mask_final > 0).astype(np.uint8)
+        severity = float(anomaly_map[mask_region > 0].mean()) if mask_region.sum() > 0 else 0.0
+        
+        # Create overlay
+        overlay = create_overlay(test_img, mask_final, heatmap, alpha=0.4)
+        
+        return {
+            "heatmap": heatmap,
+            "mask_final": mask_final,
+            "overlay": overlay,
+            "summary": "anomaly_hybrid",
+            "severity": severity,
+            "diff_map": diff_map,
+            "rough_mask": rough_mask if rough_mask is not None else mask_binary,
+            "refined_mask_sam": refined_mask_sam
+        }
