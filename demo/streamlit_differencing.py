@@ -11,6 +11,13 @@ import sys
 import gc
 from pathlib import Path
 
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.preprocess import preprocess
@@ -18,6 +25,10 @@ from utils.rough_mask import generate_rough_mask
 from utils.sam_refine import sam_refine
 from utils.visualization import create_heatmap, create_overlay
 from pipelines.anomaly_patchcore_sam import run_patchcore_sam_pipeline
+from utils.heatmap_metrics import HeatmapMetrics
+from utils.gemini_analyzer import GeminiAnalyzer
+import plotly.graph_objects as go
+import plotly.express as px
 
 
 def register_images(img_a, img_b):
@@ -100,6 +111,148 @@ def compute_difference_maps(img_a, img_b):
     diff_color = (diff_color / 255.0 * 255).astype(np.uint8)
     
     return diff_gray, diff_ssim, diff_color, img_b_resized
+
+
+def display_comprehensive_metrics(metrics, ai_analysis=None):
+    """Display comprehensive metrics in Streamlit with charts and visualizations"""
+    
+    st.subheader("📊 Comprehensive Metrics Dashboard")
+    
+    # Key Metrics Row
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Anomaly Coverage", f"{metrics['anomaly_percentage']:.2f}%")
+    with col2:
+        st.metric("Affected Pixels", f"{metrics['total_anomaly_pixels']:,}")
+    with col3:
+        st.metric("Detected Regions", f"{metrics['num_regions']}")
+    with col4:
+        st.metric("Max Intensity", f"{metrics['max_anomaly_score']:.2f}")
+    
+    # Severity Distribution Chart
+    st.markdown("### ⚠️ Severity Distribution")
+    severity_data = {
+        'Level': ['Low', 'Medium', 'High'],
+        'Pixels': [
+            metrics['low_severity_pixels'],
+            metrics['medium_severity_pixels'],
+            metrics['high_severity_pixels']
+        ],
+        'Color': ['#28a745', '#ffc107', '#dc3545']
+    }
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=severity_data['Level'],
+            y=severity_data['Pixels'],
+            marker_color=severity_data['Color'],
+            text=[f"{p:,}" for p in severity_data['Pixels']],
+            textposition='outside'
+        )
+    ])
+    fig.update_layout(
+        title="Pixel Count by Severity Level",
+        xaxis_title="Severity",
+        yaxis_title="Pixels",
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Spatial Distribution Heatmap
+    st.markdown("### 🗺️ Spatial Distribution (3x3 Grid)")
+    spatial_dist = metrics.get('spatial_distribution', {})
+    if spatial_dist:
+        grid_data = np.zeros((3, 3))
+        for i in range(3):
+            for j in range(3):
+                key = f'cell_{i}_{j}'
+                grid_data[i, j] = spatial_dist.get(key, 0) * 100
+        
+        fig = go.Figure(data=go.Heatmap(
+            z=grid_data,
+            text=[[f'{val:.1f}%' for val in row] for row in grid_data],
+            texttemplate='%{text}',
+            textfont={"size": 16},
+            colorscale='Reds',
+            showscale=True
+        ))
+        fig.update_layout(
+            title="Anomaly Density Across Image Regions",
+            height=400,
+            xaxis={'title': 'Column', 'tickvals': [0, 1, 2]},
+            yaxis={'title': 'Row', 'tickvals': [0, 1, 2]}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Top Regions Table
+    st.markdown("### 🎯 Top Anomaly Regions")
+    regions = metrics.get('regions', [])
+    if regions:
+        sorted_regions = sorted(regions, key=lambda r: r['area'], reverse=True)[:10]
+        region_data = []
+        for i, region in enumerate(sorted_regions, 1):
+            x, y, w, h = region['bbox']
+            region_data.append({
+                'Rank': i,
+                'Area (px)': f"{region['area']:,}",
+                'Bounding Box': f"({x}, {y}, {w}, {h})",
+                'Max Intensity': f"{region['max_intensity']:.3f}",
+                'Mean Intensity': f"{region['mean_intensity']:.3f}"
+            })
+        
+        import pandas as pd
+        df = pd.DataFrame(region_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Coverage Comparison
+    st.markdown("### 🔄 Coverage Comparison")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("A → B Coverage", f"{metrics.get('coverage_a_to_b', 0):.2f}%")
+    with col2:
+        st.metric("B → A Coverage", f"{metrics.get('coverage_b_to_a', 0):.2f}%")
+    with col3:
+        st.metric("Coverage Difference", f"{metrics.get('coverage_difference', 0):.2f}%")
+    
+    # AI Analysis Section
+    if ai_analysis:
+        st.markdown("---")
+        st.markdown("### 🤖 AI-Powered Structural Analysis")
+        
+        # Summary
+        st.info(f"**Summary:** {ai_analysis.get('summary', 'No summary available')}")
+        
+        # Structural Issues
+        issues = ai_analysis.get('structural_issues', [])
+        if issues:
+            st.markdown(f"#### ⚠️ Detected {len(issues)} Structural Issue(s)")
+            
+            for i, issue in enumerate(issues, 1):
+                severity = issue.get('severity', 'low').lower()
+                
+                # Color-code by severity
+                if severity == 'critical' or severity == 'high':
+                    color = '🔴'
+                elif severity == 'medium':
+                    color = '🟡'
+                else:
+                    color = '🟢'
+                
+                with st.expander(f"{color} Issue {i}: {issue.get('component', 'Unknown Component')} - {severity.upper()}"):
+                    st.markdown(f"**Issue Type:** {issue.get('issue_type', 'Unknown')}")
+                    st.markdown(f"**Location:** {issue.get('location', 'Not specified')}")
+                    st.markdown(f"**Description:** {issue.get('description', 'No description')}")
+                    st.markdown(f"**Safety Impact:** {issue.get('safety_impact', 'Unknown')}")
+                    st.markdown(f"**Recommendation:** {issue.get('recommendation', 'No recommendation')}")
+        else:
+            st.success("✓ No significant structural issues detected.")
+        
+        # Critical Actions
+        actions = ai_analysis.get('critical_actions', [])
+        if actions:
+            st.markdown("#### 🔧 Critical Actions Required")
+            for action in actions:
+                st.warning(f"• {action}")
 
 
 def analyze_with_patchcore_sam(img_a, img_b, diff_map, use_preprocessing=True):
@@ -274,6 +427,20 @@ def main():
         
         st.markdown("---")
         
+        # AI Analysis Option
+        st.header("🤖 AI Analysis")
+        use_gemini = st.checkbox("Enable Gemini AI Analysis", value=False, key="diff_gemini_check",
+                                 help="Requires GEMINI_API_KEY environment variable")
+        
+        if use_gemini:
+            api_key = os.getenv('GEMINI_API_KEY')
+            if api_key:
+                st.success("✓ Gemini API key detected")
+            else:
+                st.warning("⚠️ GEMINI_API_KEY not set. AI analysis will be skipped.")
+        
+        st.markdown("---")
+        
         # Run button
         run_button = st.button("🚀 Analyze Differences", type="primary", use_container_width=True)
     
@@ -436,6 +603,56 @@ def main():
         with col4:
             diff_mean = np.mean(diff_gray)
             st.metric("Avg Difference", f"{diff_mean:.1f}")
+        
+        st.markdown("---")
+        
+        # Comprehensive Metrics and AI Analysis
+        st.header("📊 Comprehensive Reports")
+        
+        with st.spinner("Computing comprehensive metrics..."):
+            try:
+                # Get heatmaps from results
+                heatmap_a = analysis_result.get("heatmap_diff_gray")
+                heatmap_b = analysis_result.get("heatmap_diff_gray")
+                
+                # If we don't have diff_gray heatmaps, use result heatmaps
+                if heatmap_a is None:
+                    heatmap_a = cv2.cvtColor(analysis_result.get("heatmap_a", np.zeros((100,100,3), dtype=np.uint8)), cv2.COLOR_RGB2GRAY)
+                if heatmap_b is None:
+                    heatmap_b = cv2.cvtColor(analysis_result.get("heatmap_b", np.zeros((100,100,3), dtype=np.uint8)), cv2.COLOR_RGB2GRAY)
+                
+                # Compute comprehensive metrics
+                metrics = HeatmapMetrics.compute_comprehensive_metrics(
+                    heatmap_a,
+                    heatmap_b,
+                    ref_aligned,
+                    test_aligned
+                )
+                
+                # AI Analysis if enabled
+                ai_analysis = None
+                if use_gemini and os.getenv('GEMINI_API_KEY'):
+                    try:
+                        with st.spinner("🤖 Analyzing with Gemini AI..."):
+                            gemini = GeminiAnalyzer()
+                            union_colored = cv2.applyColorMap(
+                                metrics['union_heatmap'].astype(np.uint8),
+                                cv2.COLORMAP_JET
+                            )
+                            ai_analysis = gemini.analyze_heatmaps(
+                                ref_aligned, test_aligned, union_colored, metrics
+                            )
+                            st.success("✓ AI analysis complete")
+                    except Exception as e:
+                        st.warning(f"⚠️ AI analysis failed: {e}")
+                
+                # Display comprehensive metrics
+                display_comprehensive_metrics(metrics, ai_analysis)
+                
+            except Exception as e:
+                st.error(f"❌ Failed to compute comprehensive metrics: {e}")
+                import traceback
+                traceback.print_exc()
         
         st.markdown("---")
         
